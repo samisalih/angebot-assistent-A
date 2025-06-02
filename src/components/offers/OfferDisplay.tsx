@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Calendar, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateOfferPDF } from "@/services/pdfService";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Offer {
   id: string;
@@ -55,20 +56,18 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
 
   if (!offer) {
     return (
-      <Card className="h-full bg-card shadow-lg">
-        <CardContent className="h-full flex items-center justify-center">
-          <div className="text-center text-muted-foreground">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <Share2 className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-medium text-lg mb-2 text-foreground">Noch kein Angebot</h3>
-            <p className="text-sm">
-              Beginnen Sie eine Unterhaltung mit unserem KI-Berater, um Ihr 
-              personalisiertes Angebot zu erhalten.
-            </p>
+      <div className="h-full bg-card shadow-lg rounded-lg border flex items-center justify-center">
+        <div className="text-center text-muted-foreground p-6">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <Share2 className="h-8 w-8 text-muted-foreground" />
           </div>
-        </CardContent>
-      </Card>
+          <h3 className="font-medium text-lg mb-2 text-foreground">Noch kein Angebot</h3>
+          <p className="text-sm">
+            Beginnen Sie eine Unterhaltung mit unserem KI-Berater, um Ihr 
+            personalisiertes Angebot zu erhalten.
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -78,59 +77,65 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
     : offer.validUntil;
 
   return (
-    <Card className="bg-card shadow-lg h-full flex flex-col">
-      <CardHeader className="bg-gradient-to-r from-muted to-accent/20 flex-shrink-0">
+    <div className="h-full bg-card shadow-lg rounded-lg border flex flex-col">
+      <CardHeader className="bg-gradient-to-r from-muted to-accent/20 flex-shrink-0 rounded-t-lg">
         <CardTitle className="text-xl text-foreground">{offer.title}</CardTitle>
         <p className="text-muted-foreground text-sm">{offer.description}</p>
       </CardHeader>
       
-      <CardContent className="p-6 space-y-6 flex-1 overflow-y-auto">
-        {/* Offer Items */}
-        <div className="space-y-4">
-          <h4 className="font-semibold text-foreground">Leistungen:</h4>
-          {offer.items.map((item, index) => (
-            <div
-              key={index}
-              className="flex justify-between items-start p-3 bg-muted rounded-lg"
-            >
-              <div className="flex-1">
-                <h5 className="font-medium text-foreground">{item.name}</h5>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
-                <span className="text-xs text-muted-foreground opacity-70">
-                  Menge: {item.quantity}
+      <div className="flex-1 min-h-0">
+        <ScrollArea className="h-full">
+          <CardContent className="p-6 space-y-6">
+            {/* Offer Items */}
+            <div className="space-y-4">
+              <h4 className="font-semibold text-foreground">Leistungen:</h4>
+              {offer.items.map((item, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-start p-3 bg-muted rounded-lg"
+                >
+                  <div className="flex-1">
+                    <h5 className="font-medium text-foreground">{item.name}</h5>
+                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                    <span className="text-xs text-muted-foreground opacity-70">
+                      Menge: {item.quantity}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-semibold text-foreground">
+                      {(item.price * item.quantity).toLocaleString("de-DE", {
+                        style: "currency",
+                        currency: "EUR",
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total Price */}
+            <div className="border-t border-border pt-4">
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold text-foreground">
+                  Gesamtpreis:
                 </span>
-              </div>
-              <div className="text-right">
-                <span className="font-semibold text-foreground">
-                  {(item.price * item.quantity).toLocaleString("de-DE", {
+                <span className="text-2xl font-bold text-accent">
+                  {offer.totalPrice.toLocaleString("de-DE", {
                     style: "currency",
                     currency: "EUR",
                   })}
                 </span>
               </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Gültig bis: {validUntilDate.toLocaleDateString("de-DE")}
+              </p>
             </div>
-          ))}
-        </div>
+          </CardContent>
+        </ScrollArea>
+      </div>
 
-        {/* Total Price */}
-        <div className="border-t border-border pt-4">
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-semibold text-foreground">
-              Gesamtpreis:
-            </span>
-            <span className="text-2xl font-bold text-accent">
-              {offer.totalPrice.toLocaleString("de-DE", {
-                style: "currency",
-                currency: "EUR",
-              })}
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gültig bis: {validUntilDate.toLocaleDateString("de-DE")}
-          </p>
-        </div>
-
-        {/* Actions */}
+      {/* Actions */}
+      <div className="p-6 pt-0 flex-shrink-0">
         <div className="grid grid-cols-2 gap-3">
           <Button onClick={handleDownloadPDF} className="w-full">
             <Download className="h-4 w-4 mr-2" />
@@ -145,7 +150,7 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
             Beratungstermin vereinbaren
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

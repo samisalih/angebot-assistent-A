@@ -21,44 +21,30 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
       
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         
-        <main className="flex-1 flex flex-col">
-          <div className="p-4 lg:p-6">
-            <div className="text-center lg:text-left mb-6">
-              <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-                Ihr KI-Berater
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Lassen Sie sich von unserem intelligenten Assistenten beraten und 
-                erhalten Sie ein maßgeschneidertes Angebot für Ihre Bedürfnisse.
-              </p>
-            </div>
-          </div>
+        <main className="flex-1 overflow-hidden">
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Chat Interface Panel */}
+            <ResizablePanel defaultSize={50} minSize={30} className="flex flex-col">
+              <div className="h-full overflow-hidden">
+                <ChatInterface onOfferGenerated={handleOfferGenerated} />
+              </div>
+            </ResizablePanel>
 
-          <div className="flex-1 px-4 lg:px-6 pb-4 lg:pb-6">
-            <ResizablePanelGroup direction="horizontal" className="h-full">
-              {/* Chat Interface Panel */}
-              <ResizablePanel defaultSize={50} minSize={30}>
-                <div className="h-full pr-2">
-                  <ChatInterface onOfferGenerated={handleOfferGenerated} />
-                </div>
-              </ResizablePanel>
+            <ResizableHandle withHandle />
 
-              <ResizableHandle withHandle />
-
-              {/* Offer Display Panel */}
-              <ResizablePanel defaultSize={50} minSize={30}>
-                <div className="h-full pl-2">
-                  <OfferDisplay offer={currentOffer} />
-                </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </div>
+            {/* Offer Display Panel */}
+            <ResizablePanel defaultSize={50} minSize={30} className="flex flex-col">
+              <div className="h-full overflow-hidden">
+                <OfferDisplay offer={currentOffer} />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </main>
       </div>
     </div>

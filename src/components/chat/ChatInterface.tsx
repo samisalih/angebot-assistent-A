@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Send, Bot, User, FileText } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import { chatService } from "@/services/chatService";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Message {
   id: string;
@@ -100,23 +100,27 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   const canCreateOffer = messages.length > 2 && !isLoading;
 
   return (
-    <Card className="flex flex-col h-full bg-card shadow-lg">
+    <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <ChatMessage key={message.id} message={message} />
-        ))}
-        {isLoading && (
-          <div className="flex items-center space-x-2 text-muted-foreground">
-            <Bot className="h-4 w-4 animate-pulse" />
-            <span className="text-sm">Der Assistent tippt...</span>
+      <div className="flex-1 min-h-0">
+        <ScrollArea className="h-full">
+          <div className="p-4 space-y-4">
+            {messages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
+            ))}
+            {isLoading && (
+              <div className="flex items-center space-x-2 text-muted-foreground">
+                <Bot className="h-4 w-4 animate-pulse" />
+                <span className="text-sm">Der Assistent tippt...</span>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-        )}
-        <div ref={messagesEndRef} />
+        </ScrollArea>
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-4 space-y-3">
+      <div className="border-t border-border p-4 space-y-3 flex-shrink-0">
         {/* Create Offer Button */}
         {canCreateOffer && (
           <div className="flex justify-center">
@@ -147,6 +151,6 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
           </Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 };
