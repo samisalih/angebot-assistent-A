@@ -44,19 +44,17 @@ export const AppointmentBooking = () => {
         {/* Calendar Panel */}
         <ResizablePanel defaultSize={40} minSize={30} className="flex flex-col">
           <Card className="h-full flex flex-col">
-            <CardHeader>
+            <CardHeader className="flex-shrink-0">
               <CardTitle>Datum wählen</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
-              <div className="flex-1 flex items-center justify-center">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={(date) => date < new Date() || date.getDay() === 0 || date.getDay() === 6}
-                  className="rounded-md border w-full h-full flex flex-col justify-center"
-                />
-              </div>
+            <CardContent className="flex-1 p-0 overflow-hidden">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                disabled={(date) => date < new Date() || date.getDay() === 0 || date.getDay() === 6}
+                className="h-full w-full"
+              />
             </CardContent>
           </Card>
         </ResizablePanel>
