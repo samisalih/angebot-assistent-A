@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import { loadTitilliumWebFont } from '@/utils/fontLoader';
 
@@ -30,11 +31,12 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
     if (fontBase64) {
       console.log('Font loaded successfully, adding TTF to PDF...');
       try {
-        // Add the custom TTF font to jsPDF
+        // Add the custom TTF font to jsPDF for both normal and bold
         doc.addFileToVFS('TitilliumWeb-Regular.ttf', fontBase64);
         doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'normal');
+        doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'bold');
         fontFamily = 'TitilliumWeb';
-        console.log('Titillium Web TTF font configured successfully');
+        console.log('Titillium Web TTF font configured successfully for normal and bold');
       } catch (fontError) {
         console.warn('Failed to register TTF font with jsPDF, using helvetica fallback:', fontError);
         fontFamily = 'helvetica';
