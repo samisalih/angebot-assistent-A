@@ -19,28 +19,36 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
+
+  // Close dialog if user becomes authenticated
+  if (user && open) {
+    onOpenChange(false);
+    onSuccess?.();
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
+    console.log('Attempting to sign in with email:', email);
     const { error } = await signIn(email, password);
 
     if (error) {
+      console.error('Sign in failed:', error);
       toast({
         title: 'Anmeldung fehlgeschlagen',
-        description: error.message,
+        description: error.message || 'Ein unbekannter Fehler ist aufgetreten.',
         variant: 'destructive',
       });
     } else {
+      console.log('Sign in successful');
       toast({
         title: 'Erfolgreich angemeldet',
         description: 'Sie sind jetzt angemeldet.',
       });
-      onOpenChange(false);
-      onSuccess?.();
+      // Don't manually close here - let the auth state change handle it
     }
 
     setLoading(false);
@@ -60,21 +68,23 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
 
     setLoading(true);
 
+    console.log('Attempting to sign up with email:', email);
     const { error } = await signUp(email, password);
 
     if (error) {
+      console.error('Sign up failed:', error);
       toast({
         title: 'Registrierung fehlgeschlagen',
-        description: error.message,
+        description: error.message || 'Ein unbekannter Fehler ist aufgetreten.',
         variant: 'destructive',
       });
     } else {
+      console.log('Sign up successful');
       toast({
         title: 'Registrierung erfolgreich',
         description: 'Bitte überprüfen Sie Ihre E-Mail für die Bestätigung.',
       });
-      onOpenChange(false);
-      onSuccess?.();
+      // Don't manually close here - let the auth state change handle it
     }
 
     setLoading(false);
