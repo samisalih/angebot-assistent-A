@@ -2,7 +2,6 @@
 import type { Config } from "tailwindcss";
 
 export default {
-	darkMode: ["class"],
 	content: [
 		"./pages/**/*.{ts,tsx}",
 		"./components/**/*.{ts,tsx}",
@@ -23,14 +22,14 @@ export default {
 				sans: ['Titillium Web', 'sans-serif'],
 			},
 			colors: {
+				background: '#0F1923',
+				foreground: '#FFFFFF',
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
-				ring: 'hsl(var(--ring))',
-				background: 'hsl(var(--background))',
-				foreground: 'hsl(var(--foreground))',
+				ring: '#BF16AC',
 				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					DEFAULT: '#BF16AC',
+					foreground: '#FFFFFF'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -45,26 +44,26 @@ export default {
 					foreground: 'hsl(var(--muted-foreground))'
 				},
 				accent: {
-					DEFAULT: 'hsl(var(--accent))',
-					foreground: 'hsl(var(--accent-foreground))'
+					DEFAULT: '#BF16AC',
+					foreground: '#FFFFFF'
 				},
 				popover: {
-					DEFAULT: 'hsl(var(--popover))',
-					foreground: 'hsl(var(--popover-foreground))'
+					DEFAULT: '#0F1923',
+					foreground: '#FFFFFF'
 				},
 				card: {
-					DEFAULT: 'hsl(var(--card))',
-					foreground: 'hsl(var(--card-foreground))'
+					DEFAULT: '#0F1923',
+					foreground: '#FFFFFF'
 				},
 				sidebar: {
-					DEFAULT: 'hsl(var(--sidebar-background))',
-					foreground: 'hsl(var(--sidebar-foreground))',
-					primary: 'hsl(var(--sidebar-primary))',
-					'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+					DEFAULT: '#0F1923',
+					foreground: '#FFFFFF',
+					primary: '#BF16AC',
+					'primary-foreground': '#FFFFFF',
 					accent: 'hsl(var(--sidebar-accent))',
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
-					ring: 'hsl(var(--sidebar-ring))'
+					ring: '#BF16AC'
 				}
 			},
 			borderRadius: {
