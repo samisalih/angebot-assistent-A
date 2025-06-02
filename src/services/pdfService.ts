@@ -77,7 +77,7 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
     
     // Header - moved to the right to accommodate logo
     doc.setFontSize(20);
-    doc.setFont(fontFamily, 'bold');
+    doc.setFont(fontFamily, 'bold'); // Changed from 'normal' to 'bold'
     doc.setTextColor(40, 40, 40);
     doc.text('Angebot', margins.left + 60, margins.top + 20);
     
