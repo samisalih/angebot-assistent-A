@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Send, Bot, User } from "lucide-react";
+import { Send, Bot, User, FileText } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import { chatService } from "@/services/chatService";
 
@@ -39,12 +39,13 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (messageText?: string) => {
+    const textToSend = messageText || input;
+    if (!textToSend.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: input,
+      content: textToSend,
       sender: "user",
       timestamp: new Date(),
     };
@@ -54,7 +55,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendMessage(input, messages);
+      const response = await chatService.sendMessage(textToSend, messages);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -83,12 +84,20 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     }
   };
 
+  const handleCreateOffer = async () => {
+    const offerRequest = "Basierend auf unserer Unterhaltung, erstellen Sie mir bitte ein detailliertes Angebot mit allen besprochenen Leistungen und Preisen.";
+    await handleSend(offerRequest);
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
+
+  // Check if there are enough messages to potentially create an offer
+  const canCreateOffer = messages.length > 2 && !isLoading;
 
   return (
     <Card className="flex flex-col h-[600px] bg-card shadow-lg">
@@ -107,7 +116,22 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-4">
+      <div className="border-t border-border p-4 space-y-3">
+        {/* Create Offer Button */}
+        {canCreateOffer && (
+          <div className="flex justify-center">
+            <Button 
+              onClick={handleCreateOffer}
+              disabled={isLoading}
+              variant="outline"
+              className="border-accent/50 text-accent hover:bg-accent/10"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Angebot erstellen
+            </Button>
+          </div>
+        )}
+        
         <div className="flex space-x-2">
           <Textarea
             value={input}
@@ -118,7 +142,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             className="flex-1 min-h-[60px] max-h-[120px] resize-none"
             rows={2}
           />
-          <Button onClick={handleSend} disabled={isLoading || !input.trim()} className="self-end">
+          <Button onClick={() => handleSend()} disabled={isLoading || !input.trim()} className="self-end">
             <Send className="h-4 w-4" />
           </Button>
         </div>
