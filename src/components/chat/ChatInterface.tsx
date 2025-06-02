@@ -91,14 +91,14 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   };
 
   return (
-    <Card className="flex flex-col h-[600px] bg-white shadow-lg">
+    <Card className="flex flex-col h-[600px] bg-card shadow-lg">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
         {isLoading && (
-          <div className="flex items-center space-x-2 text-gray-500">
+          <div className="flex items-center space-x-2 text-muted-foreground">
             <Bot className="h-4 w-4 animate-pulse" />
             <span className="text-sm">Der Assistent tippt...</span>
           </div>
@@ -107,7 +107,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-border p-4">
         <div className="flex space-x-2">
           <Input
             value={input}

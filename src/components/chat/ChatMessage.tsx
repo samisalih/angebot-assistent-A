@@ -24,8 +24,8 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       )}
     >
       {isAssistant && (
-        <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-          <Bot className="h-4 w-4 text-white" />
+        <div className="flex-shrink-0 w-8 h-8 bg-accent rounded-full flex items-center justify-center">
+          <Bot className="h-4 w-4 text-accent-foreground" />
         </div>
       )}
       
@@ -33,15 +33,14 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
         className={cn(
           "max-w-xs lg:max-w-md px-4 py-2 rounded-lg",
           isAssistant
-            ? "bg-gray-100 text-gray-900"
-            : "bg-blue-600 text-white"
+            ? "bg-muted text-muted-foreground"
+            : "bg-accent text-accent-foreground"
         )}
       >
         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         <p
           className={cn(
-            "text-xs mt-1",
-            isAssistant ? "text-gray-500" : "text-blue-100"
+            "text-xs mt-1 opacity-70"
           )}
         >
           {message.timestamp.toLocaleTimeString("de-DE", {
@@ -52,8 +51,8 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
       </div>
 
       {!isAssistant && (
-        <div className="flex-shrink-0 w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-          <User className="h-4 w-4 text-white" />
+        <div className="flex-shrink-0 w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+          <User className="h-4 w-4 text-muted-foreground" />
         </div>
       )}
     </div>
