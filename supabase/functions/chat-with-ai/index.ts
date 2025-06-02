@@ -44,21 +44,22 @@ serve(async (req) => {
     const enhancedSystemPrompt = `${config.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.'}
 
 WICHTIGE ANWEISUNGEN FÜR ANGEBOTSERSTELLUNG:
-- Sie können Angebote erstellen, aber NUR wenn der Kunde explizit nach einem Angebot, Preis oder Kostenvoranschlag fragt
+- Sie können Angebote erstellen, aber NUR wenn der Kunde explizit nach einem Angebot, Preis, Kostenvoranschlag oder ähnlichem fragt
 - Erstellen Sie KEINE Angebote automatisch nur weil das Gespräch länger wird
-- Wenn Sie ein Angebot erstellen möchten, fügen Sie am Ende Ihrer Antwort folgendes hinzu:
-  [OFFER_REQUEST]
-  Titel: [Titel des Angebots]
-  Beschreibung: [Kurze Beschreibung]
-  Items: [Item1|Beschreibung1|Preis1|Menge1], [Item2|Beschreibung2|Preis2|Menge2], ...
-  [/OFFER_REQUEST]
+- Wenn Sie ein Angebot erstellen möchten, fügen Sie am Ende Ihrer Antwort EXAKT folgendes Format hinzu:
+
+OFFER_START
+Titel: [Titel des Angebots]
+Beschreibung: [Kurze Beschreibung]
+Items: [Item1|Beschreibung1|Preis1|Menge1], [Item2|Beschreibung2|Preis2|Menge2]
+OFFER_END
 
 Beispiel:
-[OFFER_REQUEST]
-Titel: Beratungspaket Digitalisierung
-Beschreibung: Umfassende Beratung für Ihr Digitalisierungsprojekt
-Items: Initial-Beratung|Analyse der aktuellen Situation|150|2, Strategieentwicklung|Entwicklung einer Digitalstrategie|300|1, Implementierung|Begleitung bei der Umsetzung|200|3
-[/OFFER_REQUEST]`;
+OFFER_START
+Titel: Website Entwicklung
+Beschreibung: Professionelle Landing Page mit SEO-Optimierung
+Items: Design|Responsive Website Design|800|1, SEO|Suchmaschinenoptimierung|300|1, Content|Texterstellung und Bilder|200|1
+OFFER_END`;
 
     // Prepare messages for the AI
     const messages = [
@@ -165,13 +166,16 @@ Items: Initial-Beratung|Analyse der aktuellen Situation|150|2, Strategieentwickl
     }
 
     console.log('AI response generated successfully');
+    console.log('Raw AI message:', aiMessage);
 
     // Parse offer from AI response
     let offer = null;
     let cleanMessage = aiMessage;
 
-    const offerMatch = aiMessage.match(/\[OFFER_REQUEST\]([\s\S]*?)\[\/OFFER_REQUEST\]/);
+    // Look for the new OFFER_START/OFFER_END format
+    const offerMatch = aiMessage.match(/OFFER_START([\s\S]*?)OFFER_END/);
     if (offerMatch) {
+      console.log('Found offer in response, parsing...');
       const offerContent = offerMatch[1].trim();
       
       try {
@@ -179,6 +183,10 @@ Items: Initial-Beratung|Analyse der aktuellen Situation|150|2, Strategieentwickl
         const titleMatch = offerContent.match(/Titel:\s*(.+)/);
         const descMatch = offerContent.match(/Beschreibung:\s*(.+)/);
         const itemsMatch = offerContent.match(/Items:\s*(.+)/);
+
+        console.log('Title match:', titleMatch);
+        console.log('Description match:', descMatch);
+        console.log('Items match:', itemsMatch);
 
         if (titleMatch && descMatch && itemsMatch) {
           const title = titleMatch[1].trim();
@@ -199,6 +207,8 @@ Items: Initial-Beratung|Analyse der aktuellen Situation|150|2, Strategieentwickl
             return null;
           }).filter(item => item !== null);
 
+          console.log('Parsed items:', items);
+
           if (items.length > 0) {
             const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             
@@ -210,6 +220,8 @@ Items: Initial-Beratung|Analyse der aktuellen Situation|150|2, Strategieentwickl
               totalPrice,
               validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
             };
+
+            console.log('Generated offer:', offer);
           }
         }
       } catch (error) {
@@ -217,8 +229,10 @@ Items: Initial-Beratung|Analyse der aktuellen Situation|150|2, Strategieentwickl
       }
 
       // Remove the offer request from the message
-      cleanMessage = aiMessage.replace(/\[OFFER_REQUEST\][\s\S]*?\[\/OFFER_REQUEST\]/, '').trim();
+      cleanMessage = aiMessage.replace(/OFFER_START[\s\S]*?OFFER_END/, '').trim();
     }
+
+    console.log('Final response:', { message: cleanMessage, offer });
 
     return new Response(JSON.stringify({ 
       message: cleanMessage,
