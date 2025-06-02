@@ -20,7 +20,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-background">
       <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
       
       <div className="flex">
@@ -31,10 +31,10 @@ const Index = () => {
             {/* Chat Interface */}
             <div className="space-y-6">
               <div className="text-center lg:text-left">
-                <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+                <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
                   Ihr KI-Berater
                 </h1>
-                <p className="text-lg text-gray-600 mb-8">
+                <p className="text-lg text-muted-foreground mb-8">
                   Lassen Sie sich von unserem intelligenten Assistenten beraten und 
                   erhalten Sie ein maßgeschneidertes Angebot für Ihre Bedürfnisse.
                 </p>

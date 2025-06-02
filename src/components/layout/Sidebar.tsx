@@ -30,13 +30,13 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar shadow-lg transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-gray-900">Navigation</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="lg:hidden">
+        <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
+          <h2 className="font-semibold text-sidebar-foreground">Navigation</h2>
+          <Button variant="ghost" size="sm" onClick={onClose} className="lg:hidden text-sidebar-foreground">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -46,7 +46,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             <Button
               key={item.label}
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               onClick={() => {
                 // Handle navigation
                 onClose();
