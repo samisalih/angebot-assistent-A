@@ -1,0 +1,127 @@
+
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Send, Bot, User } from "lucide-react";
+import { ChatMessage } from "./ChatMessage";
+import { chatService } from "@/services/chatService";
+
+interface Message {
+  id: string;
+  content: string;
+  sender: "user" | "assistant";
+  timestamp: Date;
+}
+
+interface ChatInterfaceProps {
+  onOfferGenerated: (offer: any) => void;
+}
+
+export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      content: "Hallo! Ich bin Ihr KI-Berater. Erzählen Sie mir von Ihren Bedürfnissen und ich helfe Ihnen dabei, das perfekte Angebot zu erstellen. Womit kann ich Ihnen heute helfen?",
+      sender: "assistant",
+      timestamp: new Date(),
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: input,
+      sender: "user",
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await chatService.sendMessage(input, messages);
+      
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: response.message,
+        sender: "assistant",
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // Check if an offer was generated
+      if (response.offer) {
+        onOfferGenerated(response.offer);
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.",
+        sender: "assistant",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <Card className="flex flex-col h-[600px] bg-white shadow-lg">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((message) => (
+          <ChatMessage key={message.id} message={message} />
+        ))}
+        {isLoading && (
+          <div className="flex items-center space-x-2 text-gray-500">
+            <Bot className="h-4 w-4 animate-pulse" />
+            <span className="text-sm">Der Assistent tippt...</span>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-gray-200 p-4">
+        <div className="flex space-x-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Beschreiben Sie Ihre Bedürfnisse..."
+            disabled={isLoading}
+            className="flex-1"
+          />
+          <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+};
