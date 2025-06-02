@@ -1,8 +1,8 @@
 
 // Font loader utility for loading Titillium Web TTF into jsPDF
 export const loadTitilliumWebFont = async (): Promise<string> => {
-  // Using a CDN that provides TTF files instead of WOFF2
-  const fontUrl = 'https://github.com/google/fonts/raw/main/ofl/titilliumweb/TitilliumWeb-Regular.ttf';
+  // Use the local TTF file from the public folder
+  const fontUrl = '/TitilliumWeb-Regular.ttf';
   
   try {
     console.log('Fetching Titillium Web TTF font from:', fontUrl);
