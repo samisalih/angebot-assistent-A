@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Share2, Edit, Calendar } from "lucide-react";
+import { Download, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Offer {
@@ -38,14 +38,6 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
       description: "Sie werden zur Terminbuchung weitergeleitet...",
     });
     // TODO: Implement appointment scheduling
-  };
-
-  const handleEditOffer = () => {
-    toast({
-      title: "Angebot bearbeiten",
-      description: "Sie können nun Änderungen an Ihrem Angebot vornehmen...",
-    });
-    // TODO: Implement offer editing
   };
 
   if (!offer) {
@@ -131,20 +123,15 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
             <Download className="h-4 w-4 mr-2" />
             PDF Download
           </Button>
-          <Button onClick={handleEditOffer} variant="outline" className="w-full">
-            <Edit className="h-4 w-4 mr-2" />
-            Bearbeiten
+          <Button 
+            onClick={handleScheduleAppointment} 
+            variant="outline" 
+            className="w-full border-accent/50 text-accent hover:bg-accent/10"
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Beratungstermin vereinbaren
           </Button>
         </div>
-        
-        <Button 
-          onClick={handleScheduleAppointment} 
-          variant="outline" 
-          className="w-full border-accent/50 text-accent hover:bg-accent/10"
-        >
-          <Calendar className="h-4 w-4 mr-2" />
-          Beratungstermin vereinbaren
-        </Button>
       </CardContent>
     </Card>
   );
