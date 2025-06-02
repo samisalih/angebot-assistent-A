@@ -113,18 +113,20 @@ export const AppointmentConfirmationEmail = ({
 
 export default AppointmentConfirmationEmail
 
-// Dark mode styles matching your UI
+// Light mode styles with Titillium Web font and accent color
 const main = {
-  backgroundColor: '#0F1923',
+  backgroundColor: '#f8f9fa',
   fontFamily: 'Titillium Web, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif',
-  color: '#FFFFFF',
+  color: '#1a202c',
 }
 
 const container = {
   margin: '0 auto',
   padding: '20px',
   maxWidth: '600px',
-  backgroundColor: '#0F1923',
+  backgroundColor: '#ffffff',
+  borderRadius: '8px',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
 }
 
 const header = {
@@ -133,7 +135,7 @@ const header = {
 }
 
 const h1 = {
-  color: '#FFFFFF',
+  color: '#1a202c',
   fontSize: '28px',
   fontWeight: '700',
   margin: '0',
@@ -142,7 +144,7 @@ const h1 = {
 }
 
 const greeting = {
-  color: '#FFFFFF',
+  color: '#1a202c',
   fontSize: '18px',
   fontWeight: '600',
   margin: '0 0 16px 0',
@@ -150,7 +152,7 @@ const greeting = {
 }
 
 const text = {
-  color: '#CCCCCC',
+  color: '#4a5568',
   fontSize: '16px',
   lineHeight: '24px',
   margin: '16px 0',
@@ -158,25 +160,25 @@ const text = {
 }
 
 const appointmentCard = {
-  backgroundColor: '#1a2332',
+  backgroundColor: '#ffffff',
   border: '2px solid #BF16AC',
   borderRadius: '12px',
   padding: '24px',
   margin: '24px 0',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+  boxShadow: '0 2px 4px rgba(191, 22, 172, 0.1)',
 }
 
 const contactCard = {
-  backgroundColor: '#1a2332',
+  backgroundColor: '#ffffff',
   border: '2px solid #BF16AC',
   borderRadius: '12px',
   padding: '24px',
   margin: '24px 0',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+  boxShadow: '0 2px 4px rgba(191, 22, 172, 0.1)',
 }
 
 const cardHeading = {
-  color: '#FFFFFF',
+  color: '#1a202c',
   fontSize: '18px',
   fontWeight: '700',
   margin: '0 0 16px 0',
@@ -192,11 +194,11 @@ const detailRow = {
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '8px 0',
-  borderBottom: '1px solid #2d3748',
+  borderBottom: '1px solid #e2e8f0',
 }
 
 const detailLabel = {
-  color: '#CCCCCC',
+  color: '#718096',
   fontSize: '14px',
   fontWeight: '600',
   margin: '0',
@@ -204,7 +206,7 @@ const detailLabel = {
 }
 
 const detailValue = {
-  color: '#FFFFFF',
+  color: '#1a202c',
   fontSize: '16px',
   fontWeight: '700',
   margin: '0',
@@ -212,7 +214,7 @@ const detailValue = {
 }
 
 const companyInfo = {
-  color: '#CCCCCC',
+  color: '#4a5568',
   fontSize: '16px',
   lineHeight: '24px',
   margin: '0',
@@ -226,7 +228,7 @@ const emailLink = {
 }
 
 const noteSection = {
-  backgroundColor: '#2d1b0f',
+  backgroundColor: '#fef7f0',
   border: '1px solid #BF16AC',
   borderRadius: '8px',
   padding: '16px',
@@ -234,7 +236,7 @@ const noteSection = {
 }
 
 const noteText = {
-  color: '#f7fafc',
+  color: '#744210',
   fontSize: '14px',
   lineHeight: '20px',
   margin: '0',
@@ -242,7 +244,7 @@ const noteText = {
 }
 
 const closing = {
-  color: '#FFFFFF',
+  color: '#1a202c',
   fontSize: '16px',
   fontWeight: '600',
   margin: '24px 0 16px 0',
@@ -250,7 +252,7 @@ const closing = {
 }
 
 const signature = {
-  color: '#CCCCCC',
+  color: '#4a5568',
   fontSize: '16px',
   lineHeight: '24px',
   margin: '16px 0 32px 0',
@@ -258,13 +260,13 @@ const signature = {
 }
 
 const footerSection = {
-  borderTop: '1px solid #2d3748',
+  borderTop: '1px solid #e2e8f0',
   paddingTop: '16px',
   marginTop: '32px',
 }
 
 const footer = {
-  color: '#718096',
+  color: '#a0aec0',
   fontSize: '12px',
   lineHeight: '16px',
   textAlign: 'center' as const,
