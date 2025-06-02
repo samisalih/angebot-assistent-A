@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import Appointment from "./pages/Appointment";
 import Offers from "./pages/Offers";
+import OfferDetail from "./pages/OfferDetail";
 import Profile from "./pages/Profile";
 import AuthSuccess from "./pages/AuthSuccess";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               <Route path="/appointment" element={<Appointment />} />
               <Route path="/offers" element={<Offers />} />
+              <Route path="/offers/:offerId" element={<OfferDetail />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/auth-success" element={<AuthSuccess />} />
               <Route path="*" element={<NotFound />} />

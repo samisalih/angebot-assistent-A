@@ -2,16 +2,18 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Calendar, Euro } from "lucide-react";
+import { Trash2, Calendar, Euro, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSavedOffers, deleteSavedOffer, SavedOffer } from "@/services/offersService";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 export const OffersList = () => {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: offers, isLoading, error } = useQuery({
     queryKey: ['saved-offers'],
@@ -19,7 +21,10 @@ export const OffersList = () => {
     enabled: isAuthenticated,
   });
 
-  const handleDeleteOffer = async (offerId: string) => {
+  const handleDeleteOffer = async (offerId: string, event: React.MouseEvent) => {
+    // Prevent navigation when delete button is clicked
+    event.stopPropagation();
+    
     try {
       await deleteSavedOffer(offerId);
       queryClient.invalidateQueries({ queryKey: ['saved-offers'] });
@@ -35,6 +40,10 @@ export const OffersList = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleOfferClick = (offerId: string) => {
+    navigate(`/offers/${offerId}`);
   };
 
   if (!isAuthenticated) {
@@ -85,18 +94,25 @@ export const OffersList = () => {
           : null;
 
         return (
-          <Card key={offer.id} className="hover:shadow-md transition-shadow">
+          <Card 
+            key={offer.id} 
+            className="hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => handleOfferClick(offer.id)}
+          >
             <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center justify-between">
                 <span>{offer.title}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteOffer(offer.id)}
-                  className="text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleDeleteOffer(offer.id, e)}
+                    className="text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
