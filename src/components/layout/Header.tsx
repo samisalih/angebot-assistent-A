@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Menu, Settings } from "lucide-react";
+import { Menu } from "lucide-react";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -23,12 +23,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             </Button>
           </div>
 
-          {/* User Actions */}
+          {/* Empty space where user actions were */}
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Einstellungen
-            </Button>
           </div>
         </div>
       </div>
