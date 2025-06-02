@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Share2, Edit, Calendar } from "lucide-react";
@@ -15,7 +14,7 @@ interface Offer {
     quantity: number;
   }>;
   totalPrice: number;
-  validUntil: Date;
+  validUntil: Date | string;
 }
 
 interface OfferDisplayProps {
@@ -68,6 +67,11 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
     );
   }
 
+  // Convert validUntil to Date if it's a string
+  const validUntilDate = typeof offer.validUntil === 'string' 
+    ? new Date(offer.validUntil) 
+    : offer.validUntil;
+
   return (
     <Card className="bg-card shadow-lg">
       <CardHeader className="bg-gradient-to-r from-muted to-accent/20">
@@ -117,7 +121,7 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Gültig bis: {offer.validUntil.toLocaleDateString("de-DE")}
+            Gültig bis: {validUntilDate.toLocaleDateString("de-DE")}
           </p>
         </div>
 
