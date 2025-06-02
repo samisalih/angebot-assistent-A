@@ -19,7 +19,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, user, isAuthenticated } = useAuth();
+  const { signIn, signUp, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   // Close dialog and call success callback when user becomes authenticated
@@ -42,14 +42,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
     if (error) {
       console.error('Sign in failed:', error);
       
-      // Handle specific error cases
-      if (error.message?.includes('Email not confirmed')) {
-        toast({
-          title: 'E-Mail nicht bestätigt',
-          description: 'Bitte überprüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den Bestätigungslink. Der Link öffnet sich in einem neuen Tab.',
-          variant: 'destructive',
-        });
-      } else if (error.message?.includes('Invalid login credentials')) {
+      if (error.message?.includes('Invalid login credentials')) {
         toast({
           title: 'Ungültige Anmeldedaten',
           description: 'E-Mail oder Passwort ist falsch.',
@@ -94,7 +87,6 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
     if (error) {
       console.error('Sign up failed:', error);
       
-      // Handle specific error cases
       if (error.message?.includes('User already registered')) {
         toast({
           title: 'Benutzer bereits registriert',
@@ -112,7 +104,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
       console.log('Sign up successful');
       toast({
         title: 'Registrierung erfolgreich',
-        description: 'Bitte überprüfen Sie Ihre E-Mail für die Bestätigung. Der Bestätigungslink öffnet sich in einem neuen Tab.',
+        description: 'Sie sind jetzt angemeldet und können loslegen.',
       });
       // Clear form after successful signup
       setEmail('');
@@ -163,10 +155,6 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Anmeldung...' : 'Anmelden'}
               </Button>
-              <div className="text-sm text-muted-foreground text-center">
-                Falls Sie eine "E-Mail nicht bestätigt" Fehlermeldung erhalten, 
-                klicken Sie bitte auf den Bestätigungslink in Ihrer E-Mail.
-              </div>
             </form>
           </TabsContent>
           
@@ -208,10 +196,6 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Registrierung...' : 'Registrieren'}
               </Button>
-              <div className="text-sm text-muted-foreground text-center">
-                Nach der Registrierung erhalten Sie eine E-Mail zur Bestätigung. 
-                Der Bestätigungslink öffnet sich in einem neuen Tab.
-              </div>
             </form>
           </TabsContent>
         </Tabs>
