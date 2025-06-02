@@ -27,7 +27,7 @@ const Index = () => {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
         
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden p-4">
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {/* Chat Interface Panel */}
             <ResizablePanel defaultSize={50} minSize={30} className="flex flex-col">
