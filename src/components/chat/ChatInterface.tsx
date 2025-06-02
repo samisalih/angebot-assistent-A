@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Send, Bot, User } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
@@ -109,15 +109,16 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       {/* Input */}
       <div className="border-t border-border p-4">
         <div className="flex space-x-2">
-          <Input
+          <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Beschreiben Sie Ihre Bedürfnisse..."
+            onKeyDown={handleKeyPress}
+            placeholder="Beschreiben Sie Ihre Bedürfnisse... (Shift+Enter für neue Zeile)"
             disabled={isLoading}
-            className="flex-1"
+            className="flex-1 min-h-[60px] max-h-[120px] resize-none"
+            rows={2}
           />
-          <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+          <Button onClick={handleSend} disabled={isLoading || !input.trim()} className="self-end">
             <Send className="h-4 w-4" />
           </Button>
         </div>
