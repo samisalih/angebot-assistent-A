@@ -30,29 +30,28 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar shadow-lg transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-48 bg-sidebar shadow-lg transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-          <h2 className="font-semibold text-sidebar-foreground">Navigation</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="lg:hidden text-sidebar-foreground">
+        <div className="flex items-center justify-end p-2 border-b border-sidebar-border lg:hidden">
+          <Button variant="ghost" size="sm" onClick={onClose} className="text-sidebar-foreground">
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="p-2 space-y-1">
           {menuItems.map((item) => (
             <Button
               key={item.label}
               variant="ghost"
-              className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
               onClick={() => {
                 // Handle navigation
                 onClose();
               }}
             >
-              <item.icon className="h-4 w-4 mr-3" />
+              <item.icon className="h-4 w-4 mr-2" />
               {item.label}
             </Button>
           ))}
