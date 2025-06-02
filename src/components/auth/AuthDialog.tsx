@@ -37,18 +37,33 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
 
     if (error) {
       console.error('Sign in failed:', error);
-      toast({
-        title: 'Anmeldung fehlgeschlagen',
-        description: error.message || 'Ein unbekannter Fehler ist aufgetreten.',
-        variant: 'destructive',
-      });
+      
+      // Handle specific error cases
+      if (error.message?.includes('Email not confirmed')) {
+        toast({
+          title: 'E-Mail nicht bestätigt',
+          description: 'Bitte überprüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den Bestätigungslink. Falls Sie keine E-Mail erhalten haben, registrieren Sie sich erneut.',
+          variant: 'destructive',
+        });
+      } else if (error.message?.includes('Invalid login credentials')) {
+        toast({
+          title: 'Ungültige Anmeldedaten',
+          description: 'E-Mail oder Passwort ist falsch.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Anmeldung fehlgeschlagen',
+          description: error.message || 'Ein unbekannter Fehler ist aufgetreten.',
+          variant: 'destructive',
+        });
+      }
     } else {
       console.log('Sign in successful');
       toast({
         title: 'Erfolgreich angemeldet',
         description: 'Sie sind jetzt angemeldet.',
       });
-      // Don't manually close here - let the auth state change handle it
     }
 
     setLoading(false);
@@ -73,18 +88,27 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
 
     if (error) {
       console.error('Sign up failed:', error);
-      toast({
-        title: 'Registrierung fehlgeschlagen',
-        description: error.message || 'Ein unbekannter Fehler ist aufgetreten.',
-        variant: 'destructive',
-      });
+      
+      // Handle specific error cases
+      if (error.message?.includes('User already registered')) {
+        toast({
+          title: 'Benutzer bereits registriert',
+          description: 'Diese E-Mail-Adresse ist bereits registriert. Versuchen Sie sich anzumelden oder verwenden Sie eine andere E-Mail-Adresse.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Registrierung fehlgeschlagen',
+          description: error.message || 'Ein unbekannter Fehler ist aufgetreten.',
+          variant: 'destructive',
+        });
+      }
     } else {
       console.log('Sign up successful');
       toast({
         title: 'Registrierung erfolgreich',
-        description: 'Bitte überprüfen Sie Ihre E-Mail für die Bestätigung.',
+        description: 'Bitte überprüfen Sie Ihre E-Mail für die Bestätigung. Der Link ist 1 Stunde gültig.',
       });
-      // Don't manually close here - let the auth state change handle it
     }
 
     setLoading(false);
@@ -128,6 +152,10 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Anmeldung...' : 'Anmelden'}
               </Button>
+              <div className="text-sm text-muted-foreground text-center">
+                Falls Sie eine "E-Mail nicht bestätigt" Fehlermeldung erhalten, 
+                registrieren Sie sich bitte erneut mit derselben E-Mail-Adresse.
+              </div>
             </form>
           </TabsContent>
           
@@ -166,6 +194,9 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Registrierung...' : 'Registrieren'}
               </Button>
+              <div className="text-sm text-muted-foreground text-center">
+                Nach der Registrierung erhalten Sie eine E-Mail zur Bestätigung Ihres Kontos.
+              </div>
             </form>
           </TabsContent>
         </Tabs>
