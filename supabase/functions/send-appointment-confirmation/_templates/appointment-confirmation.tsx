@@ -36,52 +36,74 @@ export const AppointmentConfirmationEmail = ({
     <Preview>Terminbestätigung für Ihren Beratungstermin</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Terminbestätigung</Heading>
-        
-        <Text style={text}>
-          Lieber {customerName},
-        </Text>
-        
-        <Text style={text}>
-          vielen Dank für Ihre Terminbuchung. Hiermit bestätigen wir Ihren Beratungstermin:
-        </Text>
-        
-        <Section style={appointmentDetails}>
-          <Text style={detailsHeading}>Termindetails:</Text>
-          <Text style={detailsText}>
-            <strong>Datum:</strong> {appointmentDate}<br />
-            <strong>Uhrzeit:</strong> {appointmentTime}<br />
-            <strong>Dauer:</strong> ca. 60 Minuten
-          </Text>
+        {/* Header Section */}
+        <Section style={header}>
+          <Heading style={h1}>✅ Terminbestätigung</Heading>
         </Section>
         
-        <Section style={companyDetails}>
-          <Text style={detailsHeading}>Kontaktdaten:</Text>
-          <Text style={detailsText}>
+        {/* Greeting */}
+        <Text style={greeting}>
+          Hallo {customerName},
+        </Text>
+        
+        <Text style={text}>
+          vielen Dank für Ihre Terminbuchung! Wir freuen uns auf unser Gespräch.
+        </Text>
+        
+        {/* Appointment Details Card */}
+        <Section style={appointmentCard}>
+          <Heading style={cardHeading}>📅 Ihre Termindetails</Heading>
+          <div style={detailsGrid}>
+            <div style={detailRow}>
+              <Text style={detailLabel}>Datum:</Text>
+              <Text style={detailValue}>{appointmentDate}</Text>
+            </div>
+            <div style={detailRow}>
+              <Text style={detailLabel}>Uhrzeit:</Text>
+              <Text style={detailValue}>{appointmentTime}</Text>
+            </div>
+            <div style={detailRow}>
+              <Text style={detailLabel}>Dauer:</Text>
+              <Text style={detailValue}>ca. 60 Minuten</Text>
+            </div>
+          </div>
+        </Section>
+        
+        {/* Company Contact Card */}
+        <Section style={contactCard}>
+          <Heading style={cardHeading}>🏢 Kontaktdaten</Heading>
+          <Text style={companyInfo}>
             <strong>{companyName}</strong><br />
-            {companyAddress}<br />
-            Telefon: {companyPhone}<br />
-            E-Mail: <Link href={`mailto:${companyEmail}`} style={link}>{companyEmail}</Link>
+            📍 {companyAddress}<br />
+            📞 {companyPhone}<br />
+            ✉️ <Link href={`mailto:${companyEmail}`} style={emailLink}>{companyEmail}</Link>
           </Text>
         </Section>
         
-        <Text style={text}>
-          Sollten Sie den Termin nicht wahrnehmen können, bitten wir Sie, uns mindestens 24 Stunden 
-          vorher zu informieren.
+        {/* Important Note */}
+        <Section style={noteSection}>
+          <Text style={noteText}>
+            <strong>📝 Wichtiger Hinweis:</strong><br />
+            Sollten Sie den Termin nicht wahrnehmen können, bitten wir Sie, uns mindestens 24 Stunden vorher zu informieren.
+          </Text>
+        </Section>
+        
+        {/* Closing */}
+        <Text style={closing}>
+          Wir freuen uns darauf, Sie kennenzulernen!
         </Text>
         
-        <Text style={text}>
-          Wir freuen uns auf das Gespräch mit Ihnen!
-        </Text>
-        
-        <Text style={text}>
+        <Text style={signature}>
           Mit freundlichen Grüßen,<br />
-          Ihr Team von {companyName}
+          <strong>Ihr Team von {companyName}</strong>
         </Text>
         
-        <Text style={footer}>
-          Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht direkt auf diese E-Mail.
-        </Text>
+        {/* Footer */}
+        <Section style={footerSection}>
+          <Text style={footer}>
+            Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht direkt auf diese E-Mail.
+          </Text>
+        </Section>
       </Container>
     </Body>
   </Html>
@@ -89,70 +111,147 @@ export const AppointmentConfirmationEmail = ({
 
 export default AppointmentConfirmationEmail
 
+// Styles
 const main = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#f6f9fc',
   fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
 }
 
 const container = {
   margin: '0 auto',
-  padding: '20px 0 48px',
-  maxWidth: '560px',
+  padding: '20px',
+  maxWidth: '600px',
+}
+
+const header = {
+  textAlign: 'center' as const,
+  marginBottom: '32px',
 }
 
 const h1 = {
-  color: '#333',
-  fontSize: '24px',
+  color: '#1a202c',
+  fontSize: '28px',
   fontWeight: 'bold',
-  margin: '40px 0',
-  padding: '0',
+  margin: '0',
+  textAlign: 'center' as const,
+}
+
+const greeting = {
+  color: '#2d3748',
+  fontSize: '18px',
+  fontWeight: '600',
+  margin: '0 0 16px 0',
 }
 
 const text = {
-  color: '#333',
-  fontSize: '14px',
+  color: '#4a5568',
+  fontSize: '16px',
   lineHeight: '24px',
   margin: '16px 0',
 }
 
-const appointmentDetails = {
-  backgroundColor: '#f6f9fc',
-  border: '1px solid #e1e8ed',
-  borderRadius: '8px',
+const appointmentCard = {
+  backgroundColor: '#ffffff',
+  border: '2px solid #38a169',
+  borderRadius: '12px',
   padding: '24px',
   margin: '24px 0',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
 }
 
-const companyDetails = {
-  backgroundColor: '#f9f9f9',
-  border: '1px solid #e1e8ed',
-  borderRadius: '8px',
+const contactCard = {
+  backgroundColor: '#ffffff',
+  border: '2px solid #3182ce',
+  borderRadius: '12px',
   padding: '24px',
   margin: '24px 0',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
 }
 
-const detailsHeading = {
-  color: '#333',
+const cardHeading = {
+  color: '#1a202c',
+  fontSize: '18px',
+  fontWeight: 'bold',
+  margin: '0 0 16px 0',
+}
+
+const detailsGrid = {
+  width: '100%',
+}
+
+const detailRow = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '8px 0',
+  borderBottom: '1px solid #e2e8f0',
+}
+
+const detailLabel = {
+  color: '#718096',
+  fontSize: '14px',
+  fontWeight: '600',
+  margin: '0',
+}
+
+const detailValue = {
+  color: '#2d3748',
   fontSize: '16px',
   fontWeight: 'bold',
-  margin: '0 0 12px 0',
+  margin: '0',
 }
 
-const detailsText = {
-  color: '#333',
+const companyInfo = {
+  color: '#4a5568',
+  fontSize: '16px',
+  lineHeight: '24px',
+  margin: '0',
+}
+
+const emailLink = {
+  color: '#3182ce',
+  textDecoration: 'underline',
+}
+
+const noteSection = {
+  backgroundColor: '#fef5e7',
+  border: '1px solid #f6ad55',
+  borderRadius: '8px',
+  padding: '16px',
+  margin: '24px 0',
+}
+
+const noteText = {
+  color: '#744210',
   fontSize: '14px',
   lineHeight: '20px',
   margin: '0',
 }
 
-const link = {
-  color: '#2754C5',
-  textDecoration: 'underline',
+const closing = {
+  color: '#2d3748',
+  fontSize: '16px',
+  fontWeight: '600',
+  margin: '24px 0 16px 0',
+}
+
+const signature = {
+  color: '#4a5568',
+  fontSize: '16px',
+  lineHeight: '24px',
+  margin: '16px 0 32px 0',
+}
+
+const footerSection = {
+  borderTop: '1px solid #e2e8f0',
+  paddingTop: '16px',
+  marginTop: '32px',
 }
 
 const footer = {
-  color: '#8898aa',
+  color: '#a0aec0',
   fontSize: '12px',
   lineHeight: '16px',
-  marginTop: '32px',
+  textAlign: 'center' as const,
+  margin: '0',
 }
