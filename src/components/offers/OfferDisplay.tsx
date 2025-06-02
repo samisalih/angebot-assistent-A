@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { saveOffer } from "@/services/offersService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthDialog } from "@/components/auth/AuthDialog";
+import { useNavigate } from "react-router-dom";
 
 interface Offer {
   id: string;
@@ -31,6 +31,7 @@ interface OfferDisplayProps {
 export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [savingOffer, setSavingOffer] = useState(false);
 
@@ -54,11 +55,7 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
   };
 
   const handleScheduleAppointment = () => {
-    toast({
-      title: "Termin vereinbaren",
-      description: "Sie werden zur Terminbuchung weitergeleitet...",
-    });
-    // TODO: Implement appointment scheduling
+    navigate('/appointment');
   };
 
   const handleSaveOffer = async () => {
