@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Save, X, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,10 +17,6 @@ interface AIServiceConfig {
   endpoint_url: string;
   api_key_name: string;
   api_key: string | null;
-  is_active: boolean;
-  model: string | null;
-  max_tokens: number;
-  temperature: number;
   system_prompt: string | null;
   created_at: string;
   updated_at: string;
@@ -31,6 +26,7 @@ export const AIEndpointManager = () => {
   const [configs, setConfigs] = useState<AIServiceConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -38,10 +34,6 @@ export const AIEndpointManager = () => {
     endpoint_url: "",
     api_key_name: "",
     api_key: "",
-    is_active: false,
-    model: "",
-    max_tokens: 1000,
-    temperature: 0.7,
     system_prompt: "",
   });
 
@@ -76,45 +68,64 @@ export const AIEndpointManager = () => {
       endpoint_url: config.endpoint_url,
       api_key_name: config.api_key_name,
       api_key: config.api_key || "",
-      is_active: config.is_active,
-      model: config.model || "",
-      max_tokens: config.max_tokens,
-      temperature: config.temperature,
       system_prompt: config.system_prompt || "",
     });
     setEditingId(config.id);
+    setIsCreating(false);
+  };
+
+  const handleCreate = () => {
+    setFormData({
+      service_name: "",
+      endpoint_url: "",
+      api_key_name: "",
+      api_key: "",
+      system_prompt: "",
+    });
+    setEditingId(null);
+    setIsCreating(true);
   };
 
   const handleSave = async () => {
-    if (!editingId) return;
-
     try {
       const updateData = {
         service_name: formData.service_name,
         endpoint_url: formData.endpoint_url,
         api_key_name: formData.api_key_name,
         api_key: formData.api_key || null,
-        is_active: formData.is_active,
-        model: formData.model || null,
-        max_tokens: formData.max_tokens,
-        temperature: formData.temperature,
         system_prompt: formData.system_prompt || null,
         updated_at: new Date().toISOString(),
       };
 
-      const { error } = await supabase
-        .from('ai_service_config')
-        .update(updateData)
-        .eq('id', editingId);
+      if (editingId) {
+        // Update existing
+        const { error } = await supabase
+          .from('ai_service_config')
+          .update(updateData)
+          .eq('id', editingId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Erfolgreich aktualisiert",
-        description: `${formData.service_name} Konfiguration wurde erfolgreich aktualisiert.`,
-      });
+        toast({
+          title: "Erfolgreich aktualisiert",
+          description: `${formData.service_name} Konfiguration wurde erfolgreich aktualisiert.`,
+        });
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('ai_service_config')
+          .insert(updateData);
+
+        if (error) throw error;
+
+        toast({
+          title: "Erfolgreich erstellt",
+          description: `${formData.service_name} Konfiguration wurde erfolgreich erstellt.`,
+        });
+      }
 
       setEditingId(null);
+      setIsCreating(false);
       resetForm();
       fetchConfigs();
     } catch (error) {
@@ -158,13 +169,10 @@ export const AIEndpointManager = () => {
       endpoint_url: "",
       api_key_name: "",
       api_key: "",
-      is_active: false,
-      model: "",
-      max_tokens: 1000,
-      temperature: 0.7,
       system_prompt: "",
     });
     setEditingId(null);
+    setIsCreating(false);
   };
 
   if (isLoading) {
@@ -173,37 +181,32 @@ export const AIEndpointManager = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">AI Service Konfiguration</h2>
-        <p className="text-muted-foreground">Verwalten Sie Ihre KI-Provider Konfiguration</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">AI Service Konfiguration</h2>
+          <p className="text-muted-foreground">Verwalten Sie Ihre KI-Provider Konfiguration</p>
+        </div>
+        <Button onClick={handleCreate} disabled={editingId !== null || isCreating}>
+          <Plus className="h-4 w-4 mr-2" />
+          Neuen Service hinzufügen
+        </Button>
       </div>
 
-      {/* Edit Form */}
-      {editingId && (
+      {/* Create/Edit Form */}
+      {(editingId || isCreating) && (
         <Card>
           <CardHeader>
-            <CardTitle>Service konfigurieren</CardTitle>
+            <CardTitle>{editingId ? 'Service bearbeiten' : 'Neuen Service erstellen'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="service_name">Service Name</Label>
-                <Input
-                  id="service_name"
-                  value={formData.service_name}
-                  onChange={(e) => setFormData({...formData, service_name: e.target.value})}
-                  placeholder="z.B. OpenAI"
-                />
-              </div>
-              <div>
-                <Label htmlFor="model">Modell</Label>
-                <Input
-                  id="model"
-                  value={formData.model}
-                  onChange={(e) => setFormData({...formData, model: e.target.value})}
-                  placeholder="gpt-4o-mini"
-                />
-              </div>
+            <div>
+              <Label htmlFor="service_name">Service Name</Label>
+              <Input
+                id="service_name"
+                value={formData.service_name}
+                onChange={(e) => setFormData({...formData, service_name: e.target.value})}
+                placeholder="z.B. OpenAI, Anthropic, Gemini"
+              />
             </div>
 
             <div>
@@ -216,37 +219,14 @@ export const AIEndpointManager = () => {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="api_key_name">API Key Name</Label>
-                <Input
-                  id="api_key_name"
-                  value={formData.api_key_name}
-                  onChange={(e) => setFormData({...formData, api_key_name: e.target.value})}
-                  placeholder="OPENAI_API_KEY"
-                />
-              </div>
-              <div>
-                <Label htmlFor="max_tokens">Max Tokens</Label>
-                <Input
-                  id="max_tokens"
-                  type="number"
-                  value={formData.max_tokens}
-                  onChange={(e) => setFormData({...formData, max_tokens: parseInt(e.target.value)})}
-                />
-              </div>
-              <div>
-                <Label htmlFor="temperature">Temperature</Label>
-                <Input
-                  id="temperature"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="2"
-                  value={formData.temperature}
-                  onChange={(e) => setFormData({...formData, temperature: parseFloat(e.target.value)})}
-                />
-              </div>
+            <div>
+              <Label htmlFor="api_key_name">API Key Name</Label>
+              <Input
+                id="api_key_name"
+                value={formData.api_key_name}
+                onChange={(e) => setFormData({...formData, api_key_name: e.target.value})}
+                placeholder="OPENAI_API_KEY"
+              />
             </div>
 
             <div>
@@ -269,14 +249,6 @@ export const AIEndpointManager = () => {
                 placeholder="Sie sind ein hilfsreicher KI-Assistent..."
                 rows={3}
               />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
-              />
-              <Label>Aktiv</Label>
             </div>
 
             <div className="flex space-x-2">
@@ -304,8 +276,7 @@ export const AIEndpointManager = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Service</TableHead>
-                <TableHead>Modell</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Endpunkt</TableHead>
                 <TableHead>API Key</TableHead>
                 <TableHead>Aktionen</TableHead>
               </TableRow>
@@ -316,12 +287,7 @@ export const AIEndpointManager = () => {
                   <TableCell className="font-medium">
                     {config.service_name}
                   </TableCell>
-                  <TableCell>{config.model || 'Nicht gesetzt'}</TableCell>
-                  <TableCell>
-                    <Badge variant={config.is_active ? "default" : "secondary"}>
-                      {config.is_active ? "Aktiv" : "Inaktiv"}
-                    </Badge>
-                  </TableCell>
+                  <TableCell className="max-w-xs truncate">{config.endpoint_url}</TableCell>
                   <TableCell>
                     {config.api_key ? "Gesetzt" : config.api_key_name}
                   </TableCell>
@@ -331,7 +297,7 @@ export const AIEndpointManager = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEdit(config)}
-                        disabled={editingId !== null}
+                        disabled={editingId !== null || isCreating}
                       >
                         <Edit className="h-3 w-3" />
                       </Button>
@@ -339,7 +305,7 @@ export const AIEndpointManager = () => {
                         variant="destructive"
                         size="sm"
                         onClick={() => handleDelete(config.id, config.service_name)}
-                        disabled={editingId !== null}
+                        disabled={editingId !== null || isCreating}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>

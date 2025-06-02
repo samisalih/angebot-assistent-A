@@ -21,10 +21,6 @@ interface AIServiceConfig {
   endpoint_url: string;
   api_key_name: string;
   api_key: string | null;
-  is_active: boolean;
-  model: string | null;
-  max_tokens: number;
-  temperature: number;
   system_prompt: string | null;
 }
 
@@ -37,7 +33,6 @@ class ChatService {
       const { data, error } = await supabase
         .from('ai_service_config')
         .select('*')
-        .eq('is_active', true)
         .order('service_name')
         .limit(1)
         .single();
@@ -63,10 +58,7 @@ class ChatService {
           id: config.id,
           name: config.service_name,
           endpoint_url: config.endpoint_url,
-          model: config.model,
           api_key_name: config.api_key_name,
-          max_tokens: config.max_tokens,
-          temperature: config.temperature,
           system_prompt: config.system_prompt,
         }
       };

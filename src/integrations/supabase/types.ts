@@ -16,12 +16,8 @@ export type Database = {
           created_at: string
           endpoint_url: string
           id: string
-          is_active: boolean | null
-          max_tokens: number | null
-          model: string | null
           service_name: string
           system_prompt: string | null
-          temperature: number | null
           updated_at: string
         }
         Insert: {
@@ -30,12 +26,8 @@ export type Database = {
           created_at?: string
           endpoint_url: string
           id?: string
-          is_active?: boolean | null
-          max_tokens?: number | null
-          model?: string | null
           service_name: string
           system_prompt?: string | null
-          temperature?: number | null
           updated_at?: string
         }
         Update: {
@@ -44,12 +36,8 @@ export type Database = {
           created_at?: string
           endpoint_url?: string
           id?: string
-          is_active?: boolean | null
-          max_tokens?: number | null
-          model?: string | null
           service_name?: string
           system_prompt?: string | null
-          temperature?: number | null
           updated_at?: string
         }
         Relationships: []

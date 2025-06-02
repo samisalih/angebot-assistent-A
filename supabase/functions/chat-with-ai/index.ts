@@ -1,7 +1,6 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,10 +61,10 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: config.model,
+          model: 'gpt-4o-mini', // Use default model
           messages: messages,
-          max_tokens: config.max_tokens,
-          temperature: config.temperature,
+          max_tokens: 1000, // Use default max_tokens
+          temperature: 0.7, // Use default temperature
         }),
       });
 
@@ -88,9 +87,9 @@ serve(async (req) => {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: config.model,
-          max_tokens: config.max_tokens,
-          temperature: config.temperature,
+          model: 'claude-3-sonnet-20240229', // Use default model
+          max_tokens: 1000, // Use default max_tokens
+          temperature: 0.7, // Use default temperature
           system: systemMessage,
           messages: anthropicMessages,
         }),
@@ -116,8 +115,8 @@ serve(async (req) => {
             }]
           }],
           generationConfig: {
-            temperature: config.temperature,
-            maxOutputTokens: config.max_tokens,
+            temperature: 0.7, // Use default temperature
+            maxOutputTokens: 1000, // Use default max_tokens
           }
         }),
       });
