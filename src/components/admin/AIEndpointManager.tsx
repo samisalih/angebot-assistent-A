@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2, Edit, Plus, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -49,7 +50,7 @@ export const AIEndpointManager = () => {
       const { data, error } = await supabase
         .from('ai_endpoints')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('provider', { ascending: true });
 
       if (error) throw error;
       setEndpoints(data || []);
@@ -104,7 +105,6 @@ export const AIEndpointManager = () => {
   const handleSave = async () => {
     try {
       if (editingId) {
-        // Update existing endpoint
         const { error } = await supabase
           .from('ai_endpoints')
           .update({
@@ -119,7 +119,6 @@ export const AIEndpointManager = () => {
           description: "Der Endpunkt wurde erfolgreich aktualisiert.",
         });
       } else {
-        // Create new endpoint
         const { error } = await supabase
           .from('ai_endpoints')
           .insert([formData]);
@@ -174,6 +173,16 @@ export const AIEndpointManager = () => {
     return <div className="p-4">Lade Endpunkte...</div>;
   }
 
+  const groupedEndpoints = endpoints.reduce((acc, endpoint) => {
+    if (!acc[endpoint.provider]) {
+      acc[endpoint.provider] = [];
+    }
+    acc[endpoint.provider].push(endpoint);
+    return acc;
+  }, {} as Record<string, AIEndpoint[]>);
+
+  const providers = ['openai', 'anthropic', 'gemini'];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -181,7 +190,7 @@ export const AIEndpointManager = () => {
           <h2 className="text-2xl font-bold">AI Endpunkt Manager</h2>
           <p className="text-muted-foreground">Verwalten Sie Ihre KI-Provider und deren Konfiguration</p>
         </div>
-        <Button onClick={() => setIsCreating(true)} disabled={isCreating || editingId}>
+        <Button onClick={() => setIsCreating(true)} disabled={isCreating || editingId !== null}>
           <Plus className="h-4 w-4 mr-2" />
           Neuer Endpunkt
         </Button>
@@ -214,7 +223,6 @@ export const AIEndpointManager = () => {
                     <SelectItem value="openai">OpenAI</SelectItem>
                     <SelectItem value="anthropic">Anthropic</SelectItem>
                     <SelectItem value="gemini">Google Gemini</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -307,55 +315,81 @@ export const AIEndpointManager = () => {
         </Card>
       )}
 
-      {/* Endpoints List */}
-      <div className="grid gap-4">
-        {endpoints.map((endpoint) => (
-          <Card key={endpoint.id}>
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-semibold">{endpoint.name}</h3>
-                    <Badge variant={endpoint.is_active ? "default" : "secondary"}>
-                      {endpoint.is_active ? "Aktiv" : "Inaktiv"}
-                    </Badge>
-                    <Badge variant="outline">{endpoint.provider}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Modell: {endpoint.model} | Max Tokens: {endpoint.max_tokens} | Temperature: {endpoint.temperature}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    API Key: {endpoint.api_key_name}
-                  </p>
-                  {endpoint.system_prompt && (
-                    <p className="text-sm text-muted-foreground">
-                      System: {endpoint.system_prompt.substring(0, 100)}...
-                    </p>
-                  )}
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(endpoint)}
-                    disabled={isCreating || editingId}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(endpoint.id)}
-                    disabled={isCreating || editingId}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Endpoints Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Konfigurierte Endpunkte</CardTitle>
+          <CardDescription>Übersicht aller AI-Provider nach Service geordnet</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Endpoint</TableHead>
+                {providers.map(provider => (
+                  <TableHead key={provider} className="text-center">
+                    {provider === 'openai' && 'OpenAI'}
+                    {provider === 'anthropic' && 'Anthropic'}
+                    {provider === 'gemini' && 'Google Gemini'}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* Get the maximum number of endpoints from any provider */}
+              {Array.from({ length: Math.max(...providers.map(p => groupedEndpoints[p]?.length || 0), 1) }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell className="font-medium">
+                    {index === 0 ? 'Primär' : `Alternative ${index}`}
+                  </TableCell>
+                  {providers.map(provider => {
+                    const endpoint = groupedEndpoints[provider]?.[index];
+                    return (
+                      <TableCell key={provider} className="text-center">
+                        {endpoint ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-center space-x-2">
+                              <span className="font-medium">{endpoint.name}</span>
+                              <Badge variant={endpoint.is_active ? "default" : "secondary"}>
+                                {endpoint.is_active ? "Aktiv" : "Inaktiv"}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {endpoint.model}
+                            </div>
+                            <div className="flex justify-center space-x-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(endpoint)}
+                                disabled={isCreating || editingId !== null}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(endpoint.id)}
+                                disabled={isCreating || editingId !== null}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-muted-foreground text-sm">
+                            Nicht konfiguriert
+                          </div>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 };
