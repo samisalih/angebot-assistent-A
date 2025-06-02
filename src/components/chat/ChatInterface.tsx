@@ -148,7 +148,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             title={!canCreateOffer() ? "Bitte senden Sie mindestens 5 Nachrichten mit jeweils mehr als 50 Wörtern, um ein Angebot zu erstellen." : ""}
           >
             <FileText className="h-4 w-4 mr-2" />
-            Angebot erstellen
+            Explizit Angebot anfordern
           </Button>
         </div>
         
