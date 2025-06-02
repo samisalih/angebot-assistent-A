@@ -68,9 +68,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    // Use the current domain instead of localhost
+    const currentDomain = window.location.hostname === 'localhost' 
+      ? 'https://298558f6-9f08-498d-80d7-12364d2ebd23.lovableproject.com'
+      : window.location.origin;
     
-    console.log('Attempting sign up for:', email);
+    const redirectUrl = `${currentDomain}/`;
+    
+    console.log('Attempting sign up for:', email, 'with redirect URL:', redirectUrl);
     const { error } = await supabase.auth.signUp({
       email,
       password,
