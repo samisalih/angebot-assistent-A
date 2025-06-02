@@ -23,22 +23,32 @@ export const generateOfferPDF = (offer: Offer): void => {
   // Set font
   doc.setFont('helvetica');
   
-  // Header
+  // Logo area (top-left corner) - reserve space for logo
+  // Draw a placeholder rectangle for logo (50x30mm area)
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.rect(20, 15, 50, 30);
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text('Logo', 42, 32);
+  
+  // Header - moved to the right to accommodate logo
   doc.setFontSize(20);
   doc.setTextColor(40, 40, 40);
-  doc.text('Angebot', 20, 30);
+  doc.text('Angebot', 80, 30);
   
-  // Offer details
+  // Offer details - start below logo area
+  let currentY = 60;
   doc.setFontSize(16);
   // Wrap title text to prevent overflow
   const titleLines = doc.splitTextToSize(offer.title, 170);
-  doc.text(titleLines, 20, 50);
+  doc.text(titleLines, 20, currentY);
   
   doc.setFontSize(12);
   doc.setTextColor(80, 80, 80);
   // Wrap description text to prevent overflow
   const descriptionLines = doc.splitTextToSize(offer.description, 170);
-  let currentY = 50 + (titleLines.length * 6) + 5;
+  currentY = 60 + (titleLines.length * 6) + 5;
   doc.text(descriptionLines, 20, currentY);
   
   // Valid until date
