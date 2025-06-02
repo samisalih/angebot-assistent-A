@@ -40,19 +40,41 @@ export function parseOfferFromMessage(aiMessage: string): { offer: Offer | null;
         const description = descMatch[1].trim();
         const itemsStr = itemsMatch[1].trim();
 
-        // Parse items
-        const items = itemsStr.split(',').map(item => {
-          const parts = item.trim().split('|');
+        // Parse items - Split by "), " to handle commas in descriptions better
+        const items: OfferItem[] = [];
+        
+        // Split items more carefully by looking for the pattern: name|description|price|quantity
+        const itemParts = itemsStr.split(/,\s*(?=[^|]*\|[^|]*\|[\d.,]+\|\d+)/);
+        
+        console.log('Item parts after split:', itemParts);
+
+        for (const itemPart of itemParts) {
+          const parts = itemPart.trim().split('|');
+          console.log('Processing item parts:', parts);
+          
           if (parts.length === 4) {
-            return {
-              name: parts[0].trim(),
-              description: parts[1].trim(),
-              price: parseFloat(parts[2].trim()),
-              quantity: parseInt(parts[3].trim()),
-            };
+            const name = parts[0].trim();
+            const description = parts[1].trim();
+            const priceStr = parts[2].trim().replace(',', '.'); // Handle German decimal format
+            const quantityStr = parts[3].trim();
+            
+            const price = parseFloat(priceStr);
+            const quantity = parseInt(quantityStr);
+            
+            if (!isNaN(price) && !isNaN(quantity)) {
+              items.push({
+                name,
+                description,
+                price,
+                quantity,
+              });
+            } else {
+              console.log('Failed to parse price or quantity:', { priceStr, quantityStr, price, quantity });
+            }
+          } else {
+            console.log('Item does not have 4 parts:', parts);
           }
-          return null;
-        }).filter(item => item !== null);
+        }
 
         console.log('Parsed items:', items);
 
@@ -69,13 +91,17 @@ export function parseOfferFromMessage(aiMessage: string): { offer: Offer | null;
           };
 
           console.log('Generated offer:', offer);
+        } else {
+          console.log('No valid items found in offer');
         }
+      } else {
+        console.log('Missing required offer fields:', { titleMatch: !!titleMatch, descMatch: !!descMatch, itemsMatch: !!itemsMatch });
       }
     } catch (error) {
       console.error('Error parsing offer:', error);
     }
 
-    // Remove the offer request from the message
+    // Remove the offer content from the message
     cleanMessage = aiMessage.replace(/OFFER_START[\s\S]*?OFFER_END/, '').trim();
   }
 
