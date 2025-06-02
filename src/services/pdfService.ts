@@ -77,14 +77,14 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
     
     // Header - moved to the right to accommodate logo
     doc.setFontSize(20);
-    doc.setFont(fontFamily, 'bold'); // Changed from 'normal' to 'bold'
+    doc.setFont(fontFamily, 'bold');
     doc.setTextColor(40, 40, 40);
     doc.text('Angebot', margins.left + 60, margins.top + 20);
     
     // Offer details - start below logo area
     let currentY = margins.top + 50;
     doc.setFontSize(16);
-    doc.setFont(fontFamily, 'bold');
+    doc.setFont(fontFamily, 'bold'); // Make offer title bold
     // Only use splitTextToSize if we have a working font, otherwise use simple text
     let titleLines: string[];
     try {
@@ -119,14 +119,14 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
     // Items header
     currentY += 20;
     doc.setFontSize(14);
-    doc.setFont(fontFamily, 'bold');
+    doc.setFont(fontFamily, 'bold'); // Make "Leistungen" heading bold
     doc.setTextColor(40, 40, 40);
     doc.text('Leistungen:', margins.left, currentY);
     
     // Items table
     currentY += 15;
     doc.setFontSize(10);
-    doc.setFont(fontFamily, 'bold');
+    doc.setFont(fontFamily, 'bold'); // Make table headers bold
     
     // Table headers
     doc.setTextColor(60, 60, 60);
@@ -181,10 +181,10 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
     currentY += 10;
     
     doc.setFontSize(14);
-    doc.setFont(fontFamily, 'normal');
+    doc.setFont(fontFamily, 'bold'); // Make "Gesamtpreis" label bold
     doc.setTextColor(40, 40, 40);
     doc.text('Gesamtpreis:', margins.left + 100, currentY);
-    doc.setFont(fontFamily, 'bold');
+    doc.setFont(fontFamily, 'bold'); // Keep total price bold
     doc.text(
       offer.totalPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
       margins.left + 140,
