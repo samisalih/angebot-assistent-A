@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +39,23 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Helper function to count words in a message
+  const countWords = (text: string): number => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
+  // Check if user can create an offer
+  const canCreateOffer = (): boolean => {
+    const userMessages = messages.filter(msg => msg.sender === "user");
+    
+    if (userMessages.length <= 4) {
+      return false;
+    }
+
+    // Check if all user messages have more than 50 words
+    return userMessages.every(msg => countWords(msg.content) > 50);
+  };
 
   const handleSend = async (messageText?: string) => {
     const textToSend = messageText || input;
@@ -96,8 +114,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     }
   };
 
-  // Check if there are enough messages to potentially create an offer
-  const canCreateOffer = messages.length > 2 && !isLoading;
+  const isOfferCreationEnabled = canCreateOffer() && !isLoading;
 
   return (
     <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
@@ -122,19 +139,18 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       {/* Input */}
       <div className="border-t border-border p-4 space-y-3 flex-shrink-0">
         {/* Create Offer Button */}
-        {canCreateOffer && (
-          <div className="flex justify-center">
-            <Button 
-              onClick={handleCreateOffer}
-              disabled={isLoading}
-              variant="outline"
-              className="border-accent/50 text-accent hover:bg-accent/10"
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Angebot erstellen
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-center">
+          <Button 
+            onClick={handleCreateOffer}
+            disabled={!isOfferCreationEnabled}
+            variant="outline"
+            className="border-accent/50 text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={!canCreateOffer() ? "Bitte senden Sie mindestens 5 Nachrichten mit jeweils mehr als 50 Wörtern, um ein Angebot zu erstellen." : ""}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Angebot erstellen
+          </Button>
+        </div>
         
         <div className="flex space-x-2">
           <Textarea
