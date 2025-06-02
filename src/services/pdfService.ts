@@ -22,6 +22,7 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
   const doc = new jsPDF();
   
   // Try to load Titillium Web font
+  let fontFamily = 'helvetica'; // Default fallback
   try {
     const fontBase64 = await loadTitilliumWebFont();
     if (fontBase64) {
@@ -29,15 +30,14 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
       doc.addFileToVFS('TitilliumWeb-Regular.ttf', fontBase64);
       doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'normal');
       doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'bold'); // Using same for bold for now
-      doc.setFont('TitilliumWeb');
-    } else {
-      // Fallback to helvetica
-      doc.setFont('helvetica');
+      fontFamily = 'TitilliumWeb';
     }
   } catch (error) {
     console.warn('Failed to load custom font, using fallback:', error);
-    doc.setFont('helvetica');
   }
+  
+  // Set initial font
+  doc.setFont(fontFamily, 'normal');
   
   // Define margins (in mm)
   const margins = {
@@ -63,20 +63,20 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
   
   // Header - moved to the right to accommodate logo
   doc.setFontSize(20);
-  doc.setFontStyle('bold');
+  doc.setFont(fontFamily, 'bold');
   doc.setTextColor(40, 40, 40);
   doc.text('Angebot', margins.left + 60, margins.top + 20);
   
   // Offer details - start below logo area
   let currentY = margins.top + 50;
   doc.setFontSize(16);
-  doc.setFontStyle('bold');
+  doc.setFont(fontFamily, 'bold');
   // Wrap title text to prevent overflow
   const titleLines = doc.splitTextToSize(offer.title, usableWidth);
   doc.text(titleLines, margins.left, currentY);
   
   doc.setFontSize(12);
-  doc.setFontStyle('normal');
+  doc.setFont(fontFamily, 'normal');
   doc.setTextColor(80, 80, 80);
   // Wrap description text to prevent overflow
   const descriptionLines = doc.splitTextToSize(offer.description, usableWidth);
@@ -93,14 +93,14 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
   // Items header
   currentY += 20;
   doc.setFontSize(14);
-  doc.setFontStyle('bold');
+  doc.setFont(fontFamily, 'bold');
   doc.setTextColor(40, 40, 40);
   doc.text('Leistungen:', margins.left, currentY);
   
   // Items table
   currentY += 15;
   doc.setFontSize(10);
-  doc.setFontStyle('bold');
+  doc.setFont(fontFamily, 'bold');
   
   // Table headers
   doc.setTextColor(60, 60, 60);
@@ -117,7 +117,7 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
   currentY += 10;
   
   // Items
-  doc.setFontStyle('normal');
+  doc.setFont(fontFamily, 'normal');
   doc.setTextColor(40, 40, 40);
   offer.items.forEach((item) => {
     // Check if we need a new page
@@ -148,10 +148,10 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
   currentY += 10;
   
   doc.setFontSize(14);
-  doc.setFontStyle('normal');
+  doc.setFont(fontFamily, 'normal');
   doc.setTextColor(40, 40, 40);
   doc.text('Gesamtpreis:', margins.left + 100, currentY);
-  doc.setFontStyle('bold');
+  doc.setFont(fontFamily, 'bold');
   doc.text(
     offer.totalPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
     margins.left + 140,
@@ -160,7 +160,7 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
   
   // Footer
   doc.setFontSize(8);
-  doc.setFontStyle('normal');
+  doc.setFont(fontFamily, 'normal');
   doc.setTextColor(120, 120, 120);
   doc.text('Erstellt am: ' + new Date().toLocaleDateString('de-DE'), margins.left, pageHeight - margins.bottom);
   doc.text(`Angebots-ID: ${offer.id}`, margins.left + 100, pageHeight - margins.bottom);
