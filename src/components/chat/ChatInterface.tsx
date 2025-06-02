@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Send, Bot, User, FileText } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
+import { ConversationManager } from "./ConversationManager";
 import { chatService } from "@/services/chatService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,7 +41,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
 
   // Load messages from localStorage when user is authenticated
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && !conversationId) {
       const userStorageKey = `${STORAGE_KEY}_${user.id}`;
       const savedMessages = localStorage.getItem(userStorageKey);
       if (savedMessages) {
@@ -57,7 +58,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
         }
       }
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, conversationId]);
 
   // Save messages to localStorage and database when messages change and user is authenticated
   useEffect(() => {
@@ -106,6 +107,17 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
 
     // Check if all user messages have more than 50 words
     return userMessages.every(msg => countWords(msg.content) > 50);
+  };
+
+  const handleConversationChange = (newConversationId: string | null, newMessages: Message[]) => {
+    setConversationId(newConversationId);
+    setMessages(newMessages);
+    
+    // Update localStorage
+    if (isAuthenticated && user) {
+      const userStorageKey = `${STORAGE_KEY}_${user.id}`;
+      localStorage.setItem(userStorageKey, JSON.stringify(newMessages));
+    }
   };
 
   const handleSend = async (messageText?: string) => {
@@ -169,6 +181,13 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
 
   return (
     <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
+      {/* Conversation Manager Header */}
+      <ConversationManager
+        currentConversationId={conversationId}
+        onConversationChange={handleConversationChange}
+        currentMessages={messages}
+      />
+
       {/* Messages */}
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full">
