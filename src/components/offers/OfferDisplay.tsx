@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Calendar, Share2 } from "lucide-react";
@@ -54,7 +55,7 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
 
   if (!offer) {
     return (
-      <Card className="h-[600px] bg-card shadow-lg">
+      <Card className="h-full bg-card shadow-lg">
         <CardContent className="h-full flex items-center justify-center">
           <div className="text-center text-muted-foreground">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -77,13 +78,13 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
     : offer.validUntil;
 
   return (
-    <Card className="bg-card shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-muted to-accent/20">
+    <Card className="bg-card shadow-lg h-full flex flex-col">
+      <CardHeader className="bg-gradient-to-r from-muted to-accent/20 flex-shrink-0">
         <CardTitle className="text-xl text-foreground">{offer.title}</CardTitle>
         <p className="text-muted-foreground text-sm">{offer.description}</p>
       </CardHeader>
       
-      <CardContent className="p-6 space-y-6">
+      <CardContent className="p-6 space-y-6 flex-1 overflow-y-auto">
         {/* Offer Items */}
         <div className="space-y-4">
           <h4 className="font-semibold text-foreground">Leistungen:</h4>

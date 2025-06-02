@@ -100,7 +100,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   const canCreateOffer = messages.length > 2 && !isLoading;
 
   return (
-    <Card className="flex flex-col h-[600px] bg-card shadow-lg">
+    <Card className="flex flex-col h-full bg-card shadow-lg">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
