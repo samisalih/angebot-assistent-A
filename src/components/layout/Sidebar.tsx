@@ -1,7 +1,6 @@
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { X, Home, MessageSquare, FileText, Calendar, User } from "lucide-react";
+import { X, MessageSquare, FileText, Calendar, User } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Tooltip,
@@ -19,7 +18,6 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
   
   const menuItems = [
-    { icon: Home, label: "Dashboard", href: "/" },
     { icon: MessageSquare, label: "Beratung", href: "/" },
     { icon: FileText, label: "Meine Angebote", href: "/offers" },
     { icon: Calendar, label: "Termine", href: "/appointment" },
