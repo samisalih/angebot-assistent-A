@@ -32,7 +32,9 @@ export const AppointmentConfirmationEmail = ({
   companyEmail = "service@digitalwert.de",
 }: AppointmentConfirmationEmailProps) => (
   <Html>
-    <Head />
+    <Head>
+      <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    </Head>
     <Preview>Terminbestätigung für Ihren Beratungstermin</Preview>
     <Body style={main}>
       <Container style={container}>
@@ -111,16 +113,18 @@ export const AppointmentConfirmationEmail = ({
 
 export default AppointmentConfirmationEmail
 
-// Styles
+// Dark mode styles matching your UI
 const main = {
-  backgroundColor: '#f6f9fc',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
+  backgroundColor: '#0F1923',
+  fontFamily: 'Titillium Web, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif',
+  color: '#FFFFFF',
 }
 
 const container = {
   margin: '0 auto',
   padding: '20px',
   maxWidth: '600px',
+  backgroundColor: '#0F1923',
 }
 
 const header = {
@@ -129,50 +133,54 @@ const header = {
 }
 
 const h1 = {
-  color: '#1a202c',
+  color: '#FFFFFF',
   fontSize: '28px',
-  fontWeight: 'bold',
+  fontWeight: '700',
   margin: '0',
   textAlign: 'center' as const,
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const greeting = {
-  color: '#2d3748',
+  color: '#FFFFFF',
   fontSize: '18px',
   fontWeight: '600',
   margin: '0 0 16px 0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const text = {
-  color: '#4a5568',
+  color: '#CCCCCC',
   fontSize: '16px',
   lineHeight: '24px',
   margin: '16px 0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const appointmentCard = {
-  backgroundColor: '#ffffff',
-  border: '2px solid #38a169',
+  backgroundColor: '#1a2332',
+  border: '2px solid #BF16AC',
   borderRadius: '12px',
   padding: '24px',
   margin: '24px 0',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
 }
 
 const contactCard = {
-  backgroundColor: '#ffffff',
-  border: '2px solid #3182ce',
+  backgroundColor: '#1a2332',
+  border: '2px solid #BF16AC',
   borderRadius: '12px',
   padding: '24px',
   margin: '24px 0',
-  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
 }
 
 const cardHeading = {
-  color: '#1a202c',
+  color: '#FFFFFF',
   fontSize: '18px',
-  fontWeight: 'bold',
+  fontWeight: '700',
   margin: '0 0 16px 0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const detailsGrid = {
@@ -184,74 +192,82 @@ const detailRow = {
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '8px 0',
-  borderBottom: '1px solid #e2e8f0',
+  borderBottom: '1px solid #2d3748',
 }
 
 const detailLabel = {
-  color: '#718096',
+  color: '#CCCCCC',
   fontSize: '14px',
   fontWeight: '600',
   margin: '0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const detailValue = {
-  color: '#2d3748',
+  color: '#FFFFFF',
   fontSize: '16px',
-  fontWeight: 'bold',
+  fontWeight: '700',
   margin: '0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const companyInfo = {
-  color: '#4a5568',
+  color: '#CCCCCC',
   fontSize: '16px',
   lineHeight: '24px',
   margin: '0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const emailLink = {
-  color: '#3182ce',
+  color: '#BF16AC',
   textDecoration: 'underline',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const noteSection = {
-  backgroundColor: '#fef5e7',
-  border: '1px solid #f6ad55',
+  backgroundColor: '#2d1b0f',
+  border: '1px solid #BF16AC',
   borderRadius: '8px',
   padding: '16px',
   margin: '24px 0',
 }
 
 const noteText = {
-  color: '#744210',
+  color: '#f7fafc',
   fontSize: '14px',
   lineHeight: '20px',
   margin: '0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const closing = {
-  color: '#2d3748',
+  color: '#FFFFFF',
   fontSize: '16px',
   fontWeight: '600',
   margin: '24px 0 16px 0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const signature = {
-  color: '#4a5568',
+  color: '#CCCCCC',
   fontSize: '16px',
   lineHeight: '24px',
   margin: '16px 0 32px 0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
 
 const footerSection = {
-  borderTop: '1px solid #e2e8f0',
+  borderTop: '1px solid #2d3748',
   paddingTop: '16px',
   marginTop: '32px',
 }
 
 const footer = {
-  color: '#a0aec0',
+  color: '#718096',
   fontSize: '12px',
   lineHeight: '16px',
   textAlign: 'center' as const,
   margin: '0',
+  fontFamily: 'Titillium Web, sans-serif',
 }
