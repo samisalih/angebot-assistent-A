@@ -1,8 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Calendar, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { generateOfferPDF } from "@/services/pdfService";
 
 interface Offer {
   id: string;
@@ -26,11 +26,22 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
   const { toast } = useToast();
 
   const handleDownloadPDF = () => {
-    toast({
-      title: "PDF wird generiert",
-      description: "Ihr Angebot wird als PDF vorbereitet...",
-    });
-    // TODO: Implement PDF generation
+    if (!offer) return;
+    
+    try {
+      generateOfferPDF(offer);
+      toast({
+        title: "PDF erstellt",
+        description: "Ihr Angebot wurde erfolgreich als PDF heruntergeladen.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Fehler beim PDF-Export",
+        description: "Es gab ein Problem beim Erstellen der PDF-Datei.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleScheduleAppointment = () => {
