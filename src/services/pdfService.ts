@@ -30,77 +30,86 @@ export const generateOfferPDF = (offer: Offer): void => {
   
   // Offer details
   doc.setFontSize(16);
-  doc.text(offer.title, 20, 50);
+  // Wrap title text to prevent overflow
+  const titleLines = doc.splitTextToSize(offer.title, 170);
+  doc.text(titleLines, 20, 50);
   
   doc.setFontSize(12);
   doc.setTextColor(80, 80, 80);
-  doc.text(offer.description, 20, 60);
+  // Wrap description text to prevent overflow
+  const descriptionLines = doc.splitTextToSize(offer.description, 170);
+  let currentY = 50 + (titleLines.length * 6) + 5;
+  doc.text(descriptionLines, 20, currentY);
   
   // Valid until date
   const validUntilDate = typeof offer.validUntil === 'string' 
     ? new Date(offer.validUntil) 
     : offer.validUntil;
-  doc.text(`Gültig bis: ${validUntilDate.toLocaleDateString('de-DE')}`, 20, 70);
+  currentY += (descriptionLines.length * 5) + 10;
+  doc.text(`Gültig bis: ${validUntilDate.toLocaleDateString('de-DE')}`, 20, currentY);
   
   // Items header
+  currentY += 20;
   doc.setFontSize(14);
   doc.setTextColor(40, 40, 40);
-  doc.text('Leistungen:', 20, 90);
+  doc.text('Leistungen:', 20, currentY);
   
   // Items table
-  let yPosition = 105;
+  currentY += 15;
   doc.setFontSize(10);
   
   // Table headers
   doc.setTextColor(60, 60, 60);
-  doc.text('Leistung', 20, yPosition);
-  doc.text('Beschreibung', 70, yPosition);
-  doc.text('Menge', 140, yPosition);
-  doc.text('Preis', 160, yPosition);
+  doc.text('Leistung', 20, currentY);
+  doc.text('Beschreibung', 70, currentY);
+  doc.text('Menge', 140, currentY);
+  doc.text('Preis', 160, currentY);
   
-  yPosition += 10;
+  currentY += 5;
   
   // Draw line under headers
-  doc.line(20, yPosition - 5, 190, yPosition - 5);
+  doc.line(20, currentY, 190, currentY);
+  
+  currentY += 10;
   
   // Items
   doc.setTextColor(40, 40, 40);
   offer.items.forEach((item) => {
     // Check if we need a new page
-    if (yPosition > 250) {
+    if (currentY > 250) {
       doc.addPage();
-      yPosition = 30;
+      currentY = 30;
     }
     
     const itemTotal = item.price * item.quantity;
     
-    // Wrap text for long descriptions
-    const splitDescription = doc.splitTextToSize(item.description, 60);
+    // Wrap text for long descriptions with proper width limits
+    const splitDescription = doc.splitTextToSize(item.description, 65);
     const splitName = doc.splitTextToSize(item.name, 45);
     
-    doc.text(splitName, 20, yPosition);
-    doc.text(splitDescription, 70, yPosition);
-    doc.text(item.quantity.toString(), 140, yPosition);
-    doc.text(`${itemTotal.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}`, 160, yPosition);
+    doc.text(splitName, 20, currentY);
+    doc.text(splitDescription, 70, currentY);
+    doc.text(item.quantity.toString(), 140, currentY);
+    doc.text(`${itemTotal.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}`, 160, currentY);
     
     // Calculate height needed for this row
     const maxLines = Math.max(splitName.length, splitDescription.length);
-    yPosition += maxLines * 5 + 5;
+    currentY += maxLines * 5 + 5;
   });
   
   // Total section
-  yPosition += 10;
-  doc.line(20, yPosition, 190, yPosition);
-  yPosition += 10;
+  currentY += 10;
+  doc.line(20, currentY, 190, currentY);
+  currentY += 10;
   
   doc.setFontSize(14);
   doc.setTextColor(40, 40, 40);
-  doc.text('Gesamtpreis:', 120, yPosition);
+  doc.text('Gesamtpreis:', 120, currentY);
   doc.setFont('helvetica', 'bold');
   doc.text(
     offer.totalPrice.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }),
     160,
-    yPosition
+    currentY
   );
   
   // Footer
