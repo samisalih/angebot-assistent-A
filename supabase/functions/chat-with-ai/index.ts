@@ -22,34 +22,17 @@ serve(async (req) => {
   }
 
   try {
-    const { message, context, endpointId } = await req.json();
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Get the endpoint configuration
-    const { data: endpoint, error: endpointError } = await supabase
-      .from('ai_endpoints')
-      .select('*')
-      .eq('id', endpointId)
-      .eq('is_active', true)
-      .single();
-
-    if (endpointError || !endpoint) {
-      throw new Error('Endpoint not found or inactive');
-    }
+    const { message, context, provider, config } = await req.json();
 
     // Get the API key from environment
-    const apiKey = Deno.env.get(endpoint.api_key_name);
+    const apiKey = Deno.env.get(config.api_key_name);
     if (!apiKey) {
-      throw new Error(`API key ${endpoint.api_key_name} not found in environment`);
+      throw new Error(`API key ${config.api_key_name} not found in environment`);
     }
 
     // Prepare messages for the AI
     const messages = [
-      { role: 'system', content: endpoint.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.' }
+      { role: 'system', content: config.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.' }
     ];
 
     // Add context messages
@@ -63,27 +46,84 @@ serve(async (req) => {
     // Add current message
     messages.push({ role: 'user', content: message });
 
-    // Call the AI API
-    const response = await fetch(endpoint.endpoint_url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: endpoint.model,
-        messages: messages,
-        max_tokens: endpoint.max_tokens,
-        temperature: endpoint.temperature,
-      }),
-    });
+    let aiMessage = '';
 
-    if (!response.ok) {
-      throw new Error(`AI API error: ${response.status} ${response.statusText}`);
+    // Handle different providers
+    if (provider === 'openai') {
+      const response = await fetch(config.endpoint_url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: messages,
+          max_tokens: config.max_tokens,
+          temperature: config.temperature,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      aiMessage = data.choices[0].message.content;
+    } else if (provider === 'anthropic') {
+      // Anthropic format is different - system message is separate
+      const systemMessage = config.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.';
+      const anthropicMessages = messages.slice(1); // Remove system message
+
+      const response = await fetch(config.endpoint_url, {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: config.model,
+          max_tokens: config.max_tokens,
+          temperature: config.temperature,
+          system: systemMessage,
+          messages: anthropicMessages,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      aiMessage = data.content[0].text;
+    } else if (provider === 'gemini') {
+      // Gemini format is different
+      const response = await fetch(`${config.endpoint_url}?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: message
+            }]
+          }],
+          generationConfig: {
+            temperature: config.temperature,
+            maxOutputTokens: config.max_tokens,
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      aiMessage = data.candidates[0].content.parts[0].text;
     }
-
-    const data = await response.json();
-    const aiMessage = data.choices[0].message.content;
 
     // Check if we should generate an offer
     let offer = null;

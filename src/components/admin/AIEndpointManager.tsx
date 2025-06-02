@@ -8,57 +8,70 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Edit, Plus, Save, X } from "lucide-react";
+import { Edit, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface AIEndpoint {
+interface AIServiceConfig {
   id: string;
-  name: string;
-  provider: string;
-  endpoint_url: string;
-  model: string;
-  api_key_name: string;
-  is_active: boolean;
-  max_tokens: number;
-  temperature: number;
-  system_prompt: string;
+  openai_name: string | null;
+  openai_endpoint_url: string | null;
+  openai_model: string | null;
+  openai_api_key_name: string | null;
+  openai_is_active: boolean | null;
+  openai_max_tokens: number | null;
+  openai_temperature: number | null;
+  openai_system_prompt: string | null;
+  anthropic_name: string | null;
+  anthropic_endpoint_url: string | null;
+  anthropic_model: string | null;
+  anthropic_api_key_name: string | null;
+  anthropic_is_active: boolean | null;
+  anthropic_max_tokens: number | null;
+  anthropic_temperature: number | null;
+  anthropic_system_prompt: string | null;
+  gemini_name: string | null;
+  gemini_endpoint_url: string | null;
+  gemini_model: string | null;
+  gemini_api_key_name: string | null;
+  gemini_is_active: boolean | null;
+  gemini_max_tokens: number | null;
+  gemini_temperature: number | null;
+  gemini_system_prompt: string | null;
 }
 
 export const AIEndpointManager = () => {
-  const [endpoints, setEndpoints] = useState<AIEndpoint[]>([]);
+  const [config, setConfig] = useState<AIServiceConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     name: "",
-    provider: "openai",
     endpoint_url: "",
     model: "",
     api_key_name: "",
-    is_active: true,
+    is_active: false,
     max_tokens: 1000,
     temperature: 0.7,
     system_prompt: "",
   });
 
-  const fetchEndpoints = async () => {
+  const fetchConfig = async () => {
     try {
       const { data, error } = await supabase
-        .from('ai_endpoints')
+        .from('ai_service_config')
         .select('*')
-        .order('provider', { ascending: true });
+        .limit(1)
+        .single();
 
       if (error) throw error;
-      setEndpoints(data || []);
+      setConfig(data);
     } catch (error) {
-      console.error('Error fetching endpoints:', error);
+      console.error('Error fetching config:', error);
       toast({
         title: "Fehler",
-        description: "Endpunkte konnten nicht geladen werden.",
+        description: "Konfiguration konnte nicht geladen werden.",
         variant: "destructive",
       });
     } finally {
@@ -67,140 +80,103 @@ export const AIEndpointManager = () => {
   };
 
   useEffect(() => {
-    fetchEndpoints();
+    fetchConfig();
   }, []);
+
+  const handleEdit = (provider: string) => {
+    if (!config) return;
+    
+    const prefix = provider.toLowerCase();
+    setFormData({
+      name: config[`${prefix}_name` as keyof AIServiceConfig] as string || "",
+      endpoint_url: config[`${prefix}_endpoint_url` as keyof AIServiceConfig] as string || "",
+      model: config[`${prefix}_model` as keyof AIServiceConfig] as string || "",
+      api_key_name: config[`${prefix}_api_key_name` as keyof AIServiceConfig] as string || "",
+      is_active: config[`${prefix}_is_active` as keyof AIServiceConfig] as boolean || false,
+      max_tokens: config[`${prefix}_max_tokens` as keyof AIServiceConfig] as number || 1000,
+      temperature: config[`${prefix}_temperature` as keyof AIServiceConfig] as number || 0.7,
+      system_prompt: config[`${prefix}_system_prompt` as keyof AIServiceConfig] as string || "",
+    });
+    setEditingProvider(provider);
+  };
+
+  const handleSave = async () => {
+    if (!config || !editingProvider) return;
+
+    try {
+      const prefix = editingProvider.toLowerCase();
+      const updateData = {
+        [`${prefix}_name`]: formData.name,
+        [`${prefix}_endpoint_url`]: formData.endpoint_url,
+        [`${prefix}_model`]: formData.model,
+        [`${prefix}_api_key_name`]: formData.api_key_name,
+        [`${prefix}_is_active`]: formData.is_active,
+        [`${prefix}_max_tokens`]: formData.max_tokens,
+        [`${prefix}_temperature`]: formData.temperature,
+        [`${prefix}_system_prompt`]: formData.system_prompt,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('ai_service_config')
+        .update(updateData)
+        .eq('id', config.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Erfolgreich aktualisiert",
+        description: `${editingProvider} Konfiguration wurde erfolgreich aktualisiert.`,
+      });
+
+      setEditingProvider(null);
+      fetchConfig();
+    } catch (error) {
+      console.error('Error saving config:', error);
+      toast({
+        title: "Fehler",
+        description: "Die Konfiguration konnte nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const resetForm = () => {
     setFormData({
       name: "",
-      provider: "openai",
       endpoint_url: "",
       model: "",
       api_key_name: "",
-      is_active: true,
+      is_active: false,
       max_tokens: 1000,
       temperature: 0.7,
       system_prompt: "",
     });
-    setEditingId(null);
-    setIsCreating(false);
-  };
-
-  const handleEdit = (endpoint: AIEndpoint) => {
-    setFormData({
-      name: endpoint.name,
-      provider: endpoint.provider,
-      endpoint_url: endpoint.endpoint_url,
-      model: endpoint.model,
-      api_key_name: endpoint.api_key_name,
-      is_active: endpoint.is_active,
-      max_tokens: endpoint.max_tokens,
-      temperature: endpoint.temperature,
-      system_prompt: endpoint.system_prompt || "",
-    });
-    setEditingId(endpoint.id);
-    setIsCreating(false);
-  };
-
-  const handleSave = async () => {
-    try {
-      if (editingId) {
-        const { error } = await supabase
-          .from('ai_endpoints')
-          .update({
-            ...formData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', editingId);
-
-        if (error) throw error;
-        toast({
-          title: "Erfolgreich aktualisiert",
-          description: "Der Endpunkt wurde erfolgreich aktualisiert.",
-        });
-      } else {
-        const { error } = await supabase
-          .from('ai_endpoints')
-          .insert([formData]);
-
-        if (error) throw error;
-        toast({
-          title: "Erfolgreich erstellt",
-          description: "Der neue Endpunkt wurde erfolgreich erstellt.",
-        });
-      }
-
-      resetForm();
-      fetchEndpoints();
-    } catch (error) {
-      console.error('Error saving endpoint:', error);
-      toast({
-        title: "Fehler",
-        description: "Der Endpunkt konnte nicht gespeichert werden.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Sind Sie sicher, dass Sie diesen Endpunkt löschen möchten?")) return;
-
-    try {
-      const { error } = await supabase
-        .from('ai_endpoints')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      toast({
-        title: "Erfolgreich gelöscht",
-        description: "Der Endpunkt wurde erfolgreich gelöscht.",
-      });
-      
-      fetchEndpoints();
-    } catch (error) {
-      console.error('Error deleting endpoint:', error);
-      toast({
-        title: "Fehler",
-        description: "Der Endpunkt konnte nicht gelöscht werden.",
-        variant: "destructive",
-      });
-    }
+    setEditingProvider(null);
   };
 
   if (isLoading) {
-    return <div className="p-4">Lade Endpunkte...</div>;
+    return <div className="p-4">Lade Konfiguration...</div>;
   }
 
-  const groupedEndpoints = endpoints.reduce((acc, endpoint) => {
-    if (!acc[endpoint.provider]) {
-      acc[endpoint.provider] = [];
-    }
-    acc[endpoint.provider].push(endpoint);
-    return acc;
-  }, {} as Record<string, AIEndpoint[]>);
-
-  const providers = ['openai', 'anthropic', 'gemini'];
+  const providers = [
+    { key: 'openai', name: 'OpenAI', icon: '🤖' },
+    { key: 'anthropic', name: 'Anthropic', icon: '🎭' },
+    { key: 'gemini', name: 'Google Gemini', icon: '💎' }
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">AI Endpunkt Manager</h2>
-          <p className="text-muted-foreground">Verwalten Sie Ihre KI-Provider und deren Konfiguration</p>
-        </div>
-        <Button onClick={() => setIsCreating(true)} disabled={isCreating || editingId !== null}>
-          <Plus className="h-4 w-4 mr-2" />
-          Neuer Endpunkt
-        </Button>
+      <div>
+        <h2 className="text-2xl font-bold">AI Service Konfiguration</h2>
+        <p className="text-muted-foreground">Verwalten Sie Ihre KI-Provider Konfiguration</p>
       </div>
 
-      {/* Create/Edit Form */}
-      {(isCreating || editingId) && (
+      {/* Edit Form */}
+      {editingProvider && (
         <Card>
           <CardHeader>
-            <CardTitle>{editingId ? 'Endpunkt bearbeiten' : 'Neuer Endpunkt'}</CardTitle>
+            <CardTitle>{editingProvider} konfigurieren</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -214,31 +190,6 @@ export const AIEndpointManager = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="provider">Provider</Label>
-                <Select value={formData.provider} onValueChange={(value) => setFormData({...formData, provider: value})}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="openai">OpenAI</SelectItem>
-                    <SelectItem value="anthropic">Anthropic</SelectItem>
-                    <SelectItem value="gemini">Google Gemini</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="endpoint_url">Endpunkt URL</Label>
-                <Input
-                  id="endpoint_url"
-                  value={formData.endpoint_url}
-                  onChange={(e) => setFormData({...formData, endpoint_url: e.target.value})}
-                  placeholder="https://api.openai.com/v1/chat/completions"
-                />
-              </div>
-              <div>
                 <Label htmlFor="model">Modell</Label>
                 <Input
                   id="model"
@@ -247,6 +198,16 @@ export const AIEndpointManager = () => {
                   placeholder="gpt-4o-mini"
                 />
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="endpoint_url">Endpunkt URL</Label>
+              <Input
+                id="endpoint_url"
+                value={formData.endpoint_url}
+                onChange={(e) => setFormData({...formData, endpoint_url: e.target.value})}
+                placeholder="https://api.openai.com/v1/chat/completions"
+              />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
@@ -315,81 +276,53 @@ export const AIEndpointManager = () => {
         </Card>
       )}
 
-      {/* Endpoints Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Konfigurierte Endpunkte</CardTitle>
-          <CardDescription>Übersicht aller AI-Provider nach Service geordnet</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Endpoint</TableHead>
-                {providers.map(provider => (
-                  <TableHead key={provider} className="text-center">
-                    {provider === 'openai' && 'OpenAI'}
-                    {provider === 'anthropic' && 'Anthropic'}
-                    {provider === 'gemini' && 'Google Gemini'}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* Get the maximum number of endpoints from any provider */}
-              {Array.from({ length: Math.max(...providers.map(p => groupedEndpoints[p]?.length || 0), 1) }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">
-                    {index === 0 ? 'Primär' : `Alternative ${index}`}
-                  </TableCell>
-                  {providers.map(provider => {
-                    const endpoint = groupedEndpoints[provider]?.[index];
-                    return (
-                      <TableCell key={provider} className="text-center">
-                        {endpoint ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-center space-x-2">
-                              <span className="font-medium">{endpoint.name}</span>
-                              <Badge variant={endpoint.is_active ? "default" : "secondary"}>
-                                {endpoint.is_active ? "Aktiv" : "Inaktiv"}
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {endpoint.model}
-                            </div>
-                            <div className="flex justify-center space-x-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(endpoint)}
-                                disabled={isCreating || editingId !== null}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(endpoint.id)}
-                                disabled={isCreating || editingId !== null}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-muted-foreground text-sm">
-                            Nicht konfiguriert
-                          </div>
-                        )}
-                      </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {/* Services Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {providers.map((provider) => {
+          const prefix = provider.key;
+          const isActive = config?.[`${prefix}_is_active` as keyof AIServiceConfig] as boolean;
+          const name = config?.[`${prefix}_name` as keyof AIServiceConfig] as string;
+          const model = config?.[`${prefix}_model` as keyof AIServiceConfig] as string;
+          
+          return (
+            <Card key={provider.key} className="relative">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-2xl">{provider.icon}</span>
+                  {provider.name}
+                </CardTitle>
+                <Badge variant={isActive ? "default" : "secondary"} className="w-fit">
+                  {isActive ? "Aktiv" : "Inaktiv"}
+                </Badge>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {name && (
+                  <div>
+                    <Label className="text-sm font-medium">Name</Label>
+                    <p className="text-sm text-muted-foreground">{name}</p>
+                  </div>
+                )}
+                {model && (
+                  <div>
+                    <Label className="text-sm font-medium">Modell</Label>
+                    <p className="text-sm text-muted-foreground">{model}</p>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(provider.name)}
+                  disabled={editingProvider !== null}
+                  className="w-full"
+                >
+                  <Edit className="h-3 w-3 mr-2" />
+                  Konfigurieren
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 };

@@ -9,47 +9,92 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      ai_endpoints: {
+      ai_service_config: {
         Row: {
-          api_key_name: string
+          anthropic_api_key_name: string | null
+          anthropic_endpoint_url: string | null
+          anthropic_is_active: boolean | null
+          anthropic_max_tokens: number | null
+          anthropic_model: string | null
+          anthropic_name: string | null
+          anthropic_system_prompt: string | null
+          anthropic_temperature: number | null
           created_at: string
-          endpoint_url: string
+          gemini_api_key_name: string | null
+          gemini_endpoint_url: string | null
+          gemini_is_active: boolean | null
+          gemini_max_tokens: number | null
+          gemini_model: string | null
+          gemini_name: string | null
+          gemini_system_prompt: string | null
+          gemini_temperature: number | null
           id: string
-          is_active: boolean
-          max_tokens: number | null
-          model: string
-          name: string
-          provider: string
-          system_prompt: string | null
-          temperature: number | null
+          openai_api_key_name: string | null
+          openai_endpoint_url: string | null
+          openai_is_active: boolean | null
+          openai_max_tokens: number | null
+          openai_model: string | null
+          openai_name: string | null
+          openai_system_prompt: string | null
+          openai_temperature: number | null
           updated_at: string
         }
         Insert: {
-          api_key_name: string
+          anthropic_api_key_name?: string | null
+          anthropic_endpoint_url?: string | null
+          anthropic_is_active?: boolean | null
+          anthropic_max_tokens?: number | null
+          anthropic_model?: string | null
+          anthropic_name?: string | null
+          anthropic_system_prompt?: string | null
+          anthropic_temperature?: number | null
           created_at?: string
-          endpoint_url: string
+          gemini_api_key_name?: string | null
+          gemini_endpoint_url?: string | null
+          gemini_is_active?: boolean | null
+          gemini_max_tokens?: number | null
+          gemini_model?: string | null
+          gemini_name?: string | null
+          gemini_system_prompt?: string | null
+          gemini_temperature?: number | null
           id?: string
-          is_active?: boolean
-          max_tokens?: number | null
-          model: string
-          name: string
-          provider: string
-          system_prompt?: string | null
-          temperature?: number | null
+          openai_api_key_name?: string | null
+          openai_endpoint_url?: string | null
+          openai_is_active?: boolean | null
+          openai_max_tokens?: number | null
+          openai_model?: string | null
+          openai_name?: string | null
+          openai_system_prompt?: string | null
+          openai_temperature?: number | null
           updated_at?: string
         }
         Update: {
-          api_key_name?: string
+          anthropic_api_key_name?: string | null
+          anthropic_endpoint_url?: string | null
+          anthropic_is_active?: boolean | null
+          anthropic_max_tokens?: number | null
+          anthropic_model?: string | null
+          anthropic_name?: string | null
+          anthropic_system_prompt?: string | null
+          anthropic_temperature?: number | null
           created_at?: string
-          endpoint_url?: string
+          gemini_api_key_name?: string | null
+          gemini_endpoint_url?: string | null
+          gemini_is_active?: boolean | null
+          gemini_max_tokens?: number | null
+          gemini_model?: string | null
+          gemini_name?: string | null
+          gemini_system_prompt?: string | null
+          gemini_temperature?: number | null
           id?: string
-          is_active?: boolean
-          max_tokens?: number | null
-          model?: string
-          name?: string
-          provider?: string
-          system_prompt?: string | null
-          temperature?: number | null
+          openai_api_key_name?: string | null
+          openai_endpoint_url?: string | null
+          openai_is_active?: boolean | null
+          openai_max_tokens?: number | null
+          openai_model?: string | null
+          openai_name?: string | null
+          openai_system_prompt?: string | null
+          openai_temperature?: number | null
           updated_at?: string
         }
         Relationships: []

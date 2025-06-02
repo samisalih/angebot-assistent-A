@@ -15,56 +15,125 @@ interface Message {
   timestamp: Date;
 }
 
-interface AIEndpoint {
+interface AIServiceConfig {
   id: string;
-  name: string;
-  provider: string;
-  endpoint_url: string;
-  model: string;
-  api_key_name: string;
-  is_active: boolean;
-  max_tokens: number;
-  temperature: number;
-  system_prompt: string;
+  openai_name: string | null;
+  openai_endpoint_url: string | null;
+  openai_model: string | null;
+  openai_api_key_name: string | null;
+  openai_is_active: boolean | null;
+  openai_max_tokens: number | null;
+  openai_temperature: number | null;
+  openai_system_prompt: string | null;
+  anthropic_name: string | null;
+  anthropic_endpoint_url: string | null;
+  anthropic_model: string | null;
+  anthropic_api_key_name: string | null;
+  anthropic_is_active: boolean | null;
+  anthropic_max_tokens: number | null;
+  anthropic_temperature: number | null;
+  anthropic_system_prompt: string | null;
+  gemini_name: string | null;
+  gemini_endpoint_url: string | null;
+  gemini_model: string | null;
+  gemini_api_key_name: string | null;
+  gemini_is_active: boolean | null;
+  gemini_max_tokens: number | null;
+  gemini_temperature: number | null;
+  gemini_system_prompt: string | null;
 }
 
 class ChatService {
-  private async getActiveEndpoint(): Promise<AIEndpoint | null> {
+  private async getActiveService(): Promise<{
+    provider: string;
+    config: any;
+  } | null> {
     try {
       const { data, error } = await supabase
-        .from('ai_endpoints')
+        .from('ai_service_config')
         .select('*')
-        .eq('is_active', true)
         .limit(1)
         .single();
 
       if (error) {
-        console.error('Error fetching active endpoint:', error);
+        console.error('Error fetching service config:', error);
         return null;
       }
 
-      return data;
+      const config = data as AIServiceConfig;
+      
+      // Check which service is active (prioritize OpenAI, then Anthropic, then Gemini)
+      if (config.openai_is_active) {
+        return {
+          provider: 'openai',
+          config: {
+            id: config.id,
+            name: config.openai_name,
+            endpoint_url: config.openai_endpoint_url,
+            model: config.openai_model,
+            api_key_name: config.openai_api_key_name,
+            max_tokens: config.openai_max_tokens,
+            temperature: config.openai_temperature,
+            system_prompt: config.openai_system_prompt,
+          }
+        };
+      }
+      
+      if (config.anthropic_is_active) {
+        return {
+          provider: 'anthropic',
+          config: {
+            id: config.id,
+            name: config.anthropic_name,
+            endpoint_url: config.anthropic_endpoint_url,
+            model: config.anthropic_model,
+            api_key_name: config.anthropic_api_key_name,
+            max_tokens: config.anthropic_max_tokens,
+            temperature: config.anthropic_temperature,
+            system_prompt: config.anthropic_system_prompt,
+          }
+        };
+      }
+      
+      if (config.gemini_is_active) {
+        return {
+          provider: 'gemini',
+          config: {
+            id: config.id,
+            name: config.gemini_name,
+            endpoint_url: config.gemini_endpoint_url,
+            model: config.gemini_model,
+            api_key_name: config.gemini_api_key_name,
+            max_tokens: config.gemini_max_tokens,
+            temperature: config.gemini_temperature,
+            system_prompt: config.gemini_system_prompt,
+          }
+        };
+      }
+
+      return null;
     } catch (error) {
-      console.error('Error in getActiveEndpoint:', error);
+      console.error('Error in getActiveService:', error);
       return null;
     }
   }
 
   async sendMessage(message: string, context: Message[]): Promise<ChatResponse> {
-    const endpoint = await this.getActiveEndpoint();
+    const activeService = await this.getActiveService();
     
-    if (!endpoint) {
-      // Fallback to mock response if no endpoint is configured
+    if (!activeService) {
+      // Fallback to mock response if no service is configured
       return this.getMockResponse(message, context);
     }
 
     try {
-      // Call the AI endpoint via Supabase Edge Function
+      // Call the AI service via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: {
           message,
           context: context.slice(-5), // Send last 5 messages for context
-          endpointId: endpoint.id
+          provider: activeService.provider,
+          config: activeService.config
         }
       });
 
@@ -75,7 +144,7 @@ class ChatService {
         offer: data.offer
       };
     } catch (error) {
-      console.error('Error calling AI endpoint:', error);
+      console.error('Error calling AI service:', error);
       // Fallback to mock response on error
       return this.getMockResponse(message, context);
     }
