@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // This service will handle the AI chat functionality using endpoints from Supabase
@@ -22,6 +21,13 @@ interface AIServiceConfig {
   api_key_name: string;
   api_key: string | null;
   system_prompt: string | null;
+}
+
+interface KnowledgeItem {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
 }
 
 class ChatService {
@@ -65,6 +71,28 @@ class ChatService {
     }
   }
 
+  private async getKnowledgeBase(): Promise<string> {
+    try {
+      const { data: knowledgeItems, error } = await supabase
+        .from('knowledge_base')
+        .select('title, content, category')
+        .order('created_at', { ascending: false });
+
+      if (error || !knowledgeItems || knowledgeItems.length === 0) {
+        return '';
+      }
+
+      const knowledgeText = knowledgeItems
+        .map((item: KnowledgeItem) => `### ${item.title} (${item.category})\n${item.content}`)
+        .join('\n\n---\n\n');
+
+      return `\n\nACHTUNG: Hier ist wichtiges Unternehmenswissen, das Sie bei Ihren Antworten berücksichtigen MÜSSEN:\n\n${knowledgeText}\n\nBitte nutzen Sie diese Informationen für präzise und unternehmenskonforme Antworten.`;
+    } catch (error) {
+      console.error('Error loading knowledge base:', error);
+      return '';
+    }
+  }
+
   private formatServiceConfig(config: AIServiceConfig) {
     // Determine provider type based on service name
     let provider = 'openai'; // default
@@ -99,13 +127,20 @@ class ChatService {
     try {
       console.log('Calling AI service via Edge Function:', activeService.config.name);
       
+      // Get knowledge base content
+      const knowledgeBase = await this.getKnowledgeBase();
+      
       // Call the AI service via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: {
           message,
           context: context.slice(-5), // Send last 5 messages for context
           provider: activeService.provider,
-          config: activeService.config
+          config: {
+            ...activeService.config,
+            system_prompt: (activeService.config.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.') + knowledgeBase
+          },
+          knowledgeBase
         }
       });
 
