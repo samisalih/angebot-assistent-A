@@ -3,16 +3,24 @@ import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { TimeSlotGrid } from "./TimeSlotGrid";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const AppointmentBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [isBooking, setIsBooking] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleBookAppointment = () => {
+  const handleBookAppointment = async () => {
     if (!selectedDate || !selectedTime) {
       toast({
         title: "Bitte wählen Sie Datum und Uhrzeit",
@@ -22,13 +30,67 @@ export const AppointmentBooking = () => {
       return;
     }
 
-    toast({
-      title: "Termin erfolgreich gebucht",
-      description: `Ihr Termin am ${selectedDate.toLocaleDateString("de-DE")} um ${selectedTime} wurde gebucht.`,
-    });
+    if (!customerName || !customerEmail) {
+      toast({
+        title: "Bitte füllen Sie alle Felder aus",
+        description: "Name und E-Mail-Adresse sind erforderlich.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Reset selections
-    setSelectedTime(null);
+    setIsBooking(true);
+
+    try {
+      // Send appointment confirmation email
+      const { data, error } = await supabase.functions.invoke('send-appointment-confirmation', {
+        body: {
+          customerEmail,
+          customerName,
+          appointmentDate: selectedDate.toLocaleDateString("de-DE", {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          appointmentTime: selectedTime,
+          companyName: "Ihr Beratungsunternehmen",
+          companyAddress: "Musterstraße 123, 12345 Musterstadt",
+          companyPhone: "+49 123 456789",
+          companyEmail: "info@beispiel.de",
+        },
+      });
+
+      if (error) {
+        console.error('Error sending confirmation email:', error);
+        toast({
+          title: "E-Mail-Versand fehlgeschlagen",
+          description: "Der Termin wurde gebucht, aber die Bestätigungs-E-Mail konnte nicht gesendet werden.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Confirmation email sent:', data);
+        toast({
+          title: "Termin erfolgreich gebucht",
+          description: `Ihr Termin am ${selectedDate.toLocaleDateString("de-DE")} um ${selectedTime} wurde gebucht. Eine Bestätigungs-E-Mail wurde an ${customerEmail} gesendet.`,
+        });
+      }
+
+      // Reset form
+      setSelectedTime(null);
+      setCustomerName("");
+      setCustomerEmail("");
+
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      toast({
+        title: "Fehler beim Buchen",
+        description: "Es gab einen Fehler beim Buchen Ihres Termins. Bitte versuchen Sie es erneut.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   return (
@@ -82,16 +144,41 @@ export const AppointmentBooking = () => {
                     selectedTime={selectedTime}
                     onTimeSelect={setSelectedTime}
                   />
-                  <div className="mt-4 pt-4 border-t">
-                    <Button 
-                      onClick={handleBookAppointment}
-                      disabled={!selectedTime}
-                      className="w-full"
-                    >
-                      Termin buchen
-                      {selectedTime && ` (${selectedTime})`}
-                    </Button>
-                  </div>
+                  
+                  {/* Customer Information Form */}
+                  {selectedTime && (
+                    <div className="mt-4 pt-4 border-t space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="customerName">Name *</Label>
+                          <Input
+                            id="customerName"
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            placeholder="Ihr Name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="customerEmail">E-Mail *</Label>
+                          <Input
+                            id="customerEmail"
+                            type="email"
+                            value={customerEmail}
+                            onChange={(e) => setCustomerEmail(e.target.value)}
+                            placeholder="ihre.email@beispiel.de"
+                          />
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        onClick={handleBookAppointment}
+                        disabled={!selectedTime || !customerName || !customerEmail || isBooking}
+                        className="w-full"
+                      >
+                        {isBooking ? "Wird gebucht..." : `Termin buchen (${selectedTime})`}
+                      </Button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">
