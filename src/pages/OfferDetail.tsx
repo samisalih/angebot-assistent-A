@@ -10,6 +10,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
+interface OfferData {
+  description?: string;
+  items?: Array<{
+    name: string;
+    description: string;
+    price: number;
+    quantity: number;
+  }>;
+  validUntil?: string | Date;
+}
+
 const OfferDetail = () => {
   const { offerId } = useParams();
   const navigate = useNavigate();
@@ -28,10 +39,10 @@ const OfferDetail = () => {
   const transformedOffer = selectedOffer ? {
     id: selectedOffer.id,
     title: selectedOffer.title,
-    description: selectedOffer.offer_data?.description || "Individuelles Angebot",
-    items: selectedOffer.offer_data?.items || [],
+    description: (selectedOffer.offer_data as OfferData)?.description || "Individuelles Angebot",
+    items: (selectedOffer.offer_data as OfferData)?.items || [],
     totalPrice: selectedOffer.total_price,
-    validUntil: selectedOffer.offer_data?.validUntil || new Date(),
+    validUntil: (selectedOffer.offer_data as OfferData)?.validUntil || new Date(),
   } : null;
 
   if (isLoading) {
