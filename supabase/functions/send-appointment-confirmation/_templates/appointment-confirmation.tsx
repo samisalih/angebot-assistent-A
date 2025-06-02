@@ -26,10 +26,10 @@ export const AppointmentConfirmationEmail = ({
   customerName = "Kunde",
   appointmentDate,
   appointmentTime,
-  companyName = "Ihr Beratungsunternehmen",
-  companyAddress = "Musterstraße 123, 12345 Musterstadt",
-  companyPhone = "+49 123 456789",
-  companyEmail = "info@beispiel.de",
+  companyName = "Digitalwert GmbH",
+  companyAddress = "Alaunstr. 9, 01099 Dresden",
+  companyPhone = "+49 351 456789",
+  companyEmail = "service@digitalwert.de",
 }: AppointmentConfirmationEmailProps) => (
   <Html>
     <Head />
