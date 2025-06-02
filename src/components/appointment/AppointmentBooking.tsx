@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,10 +53,10 @@ export const AppointmentBooking = () => {
             day: 'numeric'
           }),
           appointmentTime: selectedTime,
-          companyName: "Ihr Beratungsunternehmen",
-          companyAddress: "Musterstraße 123, 12345 Musterstadt",
-          companyPhone: "+49 123 456789",
-          companyEmail: "info@beispiel.de",
+          companyName: "Digitalwert – Agentur für digitale Wertschöpfung",
+          companyAddress: "Alaunstraße 9, 01099 Dresden",
+          companyPhone: "+49 351 456789",
+          companyEmail: "service@digitalwert.de",
         },
       });
 
