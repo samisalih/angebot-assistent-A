@@ -33,7 +33,8 @@ export const generateOfferPDF = (offer: Offer): void => {
   const pageHeight = 297; // A4 height in mm
   const usableWidth = pageWidth - margins.left - margins.right;
   
-  // Set font
+  // Set font to match UI (using a close alternative since Titillium Web may not be available)
+  // We'll use a clean sans-serif font that's similar to Titillium Web
   doc.setFont('helvetica');
   
   // Logo area (top-left corner) - reserve space for logo
@@ -47,17 +48,20 @@ export const generateOfferPDF = (offer: Offer): void => {
   
   // Header - moved to the right to accommodate logo
   doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(40, 40, 40);
   doc.text('Angebot', margins.left + 60, margins.top + 20);
   
   // Offer details - start below logo area
   let currentY = margins.top + 50;
   doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
   // Wrap title text to prevent overflow
   const titleLines = doc.splitTextToSize(offer.title, usableWidth);
   doc.text(titleLines, margins.left, currentY);
   
   doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(80, 80, 80);
   // Wrap description text to prevent overflow
   const descriptionLines = doc.splitTextToSize(offer.description, usableWidth);
@@ -74,12 +78,14 @@ export const generateOfferPDF = (offer: Offer): void => {
   // Items header
   currentY += 20;
   doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(40, 40, 40);
   doc.text('Leistungen:', margins.left, currentY);
   
   // Items table
   currentY += 15;
   doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
   
   // Table headers
   doc.setTextColor(60, 60, 60);
@@ -96,6 +102,7 @@ export const generateOfferPDF = (offer: Offer): void => {
   currentY += 10;
   
   // Items
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
   offer.items.forEach((item) => {
     // Check if we need a new page
@@ -126,6 +133,7 @@ export const generateOfferPDF = (offer: Offer): void => {
   currentY += 10;
   
   doc.setFontSize(14);
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
   doc.text('Gesamtpreis:', margins.left + 100, currentY);
   doc.setFont('helvetica', 'bold');
