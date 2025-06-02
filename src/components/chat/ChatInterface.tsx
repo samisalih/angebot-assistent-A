@@ -9,7 +9,8 @@ import { ConversationManager } from "./ConversationManager";
 import { chatService } from "@/services/chatService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
-import { saveConversation, updateConversation } from "@/services/conversationsService";
+import { saveConversation, updateConversation, getConversations } from "@/services/conversationsService";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -26,6 +27,7 @@ const STORAGE_KEY = 'chat_messages';
 
 export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -37,7 +39,24 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationCount, setConversationCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load conversation count when user is authenticated
+  useEffect(() => {
+    const loadConversationCount = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const conversations = await getConversations();
+          setConversationCount(conversations?.length || 0);
+        } catch (error) {
+          console.error('Error loading conversation count:', error);
+        }
+      }
+    };
+
+    loadConversationCount();
+  }, [isAuthenticated, user]);
 
   // Load messages from localStorage when user is authenticated
   useEffect(() => {
@@ -71,9 +90,14 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
         try {
           if (conversationId) {
             await updateConversation(conversationId, messages);
-          } else {
+          } else if (conversationCount < 3) {
+            // Only create new conversation if under limit
             const conversation = await saveConversation(messages, 'Chat Conversation');
             setConversationId(conversation.id);
+            setConversationCount(prev => prev + 1);
+          } else {
+            // If at limit, show warning but don't save
+            console.warn('Conversation limit reached, not saving new conversation');
           }
         } catch (error) {
           console.error('Error saving conversation to database:', error);
@@ -82,7 +106,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
 
       saveToDatabase();
     }
-  }, [messages, isAuthenticated, user, conversationId]);
+  }, [messages, isAuthenticated, user, conversationId, conversationCount]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -118,11 +142,28 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       const userStorageKey = `${STORAGE_KEY}_${user.id}`;
       localStorage.setItem(userStorageKey, JSON.stringify(newMessages));
     }
+
+    // Update conversation count
+    if (isAuthenticated && user) {
+      getConversations().then(conversations => {
+        setConversationCount(conversations?.length || 0);
+      });
+    }
   };
 
   const handleSend = async (messageText?: string) => {
     const textToSend = messageText || input;
     if (!textToSend.trim() || isLoading) return;
+
+    // Check conversation limit for new conversations
+    if (!conversationId && isAuthenticated && conversationCount >= 3) {
+      toast({
+        title: "Limit erreicht",
+        description: "Sie können maximal 3 Unterhaltungen haben. Bitte wählen Sie eine bestehende Unterhaltung aus oder löschen Sie eine, um eine neue zu erstellen.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -200,7 +241,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             )}
             {isAuthenticated && user && (
               <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg text-center text-sm text-primary">
-                Chat wird für {user.email} gespeichert und synchronisiert.
+                Chat wird für {user.email} gespeichert und synchronisiert. ({conversationCount}/3 Unterhaltungen)
               </div>
             )}
             
