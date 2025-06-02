@@ -1,7 +1,9 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, User, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthDialog } from "@/components/auth/AuthDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,57 +19,77 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, signOut, isAuthenticated } = useAuth();
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
   };
 
-  return (
-    <header className="bg-transparent">
-      <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Menu Button */}
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMenuClick}
-              className="lg:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-          </div>
+  const handleAuthButtonClick = () => {
+    if (!isAuthenticated) {
+      setAuthDialogOpen(true);
+    }
+  };
 
-          {/* User Authentication Status */}
-          <div className="flex items-center space-x-2">
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      {user?.email}
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Mein Konto</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center space-x-2">
-                    <LogOut className="h-4 w-4" />
-                    <span>Abmelden</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                <User className="h-4 w-4" />
-                <span className="hidden sm:inline">Nicht angemeldet</span>
+  return (
+    <>
+      <header className="bg-transparent">
+        <div className="container mx-auto px-4 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Menu Button */}
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onMenuClick}
+                className="lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
               </Button>
-            )}
+            </div>
+
+            {/* User Authentication Status */}
+            <div className="flex items-center space-x-2">
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                      <User className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        {user?.email}
+                      </span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Mein Konto</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="flex items-center space-x-2">
+                      <LogOut className="h-4 w-4" />
+                      <span>Abmelden</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center space-x-2"
+                  onClick={handleAuthButtonClick}
+                >
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">Nicht angemeldet</span>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <AuthDialog 
+        open={authDialogOpen} 
+        onOpenChange={setAuthDialogOpen}
+        onSuccess={() => setAuthDialogOpen(false)}
+      />
+    </>
   );
 };
