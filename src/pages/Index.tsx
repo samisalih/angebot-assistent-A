@@ -5,15 +5,17 @@ import { OfferDisplay } from "@/components/offers/OfferDisplay";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
+import { useOffer } from "@/contexts/OfferContext";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 const Index = () => {
-  const [currentOffer, setCurrentOffer] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast } = useToast();
+  const { currentOffer, setCurrentOffer, setHasGeneratedOffer } = useOffer();
 
   const handleOfferGenerated = (offer: any) => {
     setCurrentOffer(offer);
+    setHasGeneratedOffer(true);
     toast({
       title: "Angebot erstellt",
       description: "Ihr personalisiertes Angebot wurde erfolgreich generiert.",
