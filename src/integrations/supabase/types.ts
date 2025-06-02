@@ -9,7 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      ai_endpoints: {
+        Row: {
+          api_key_name: string
+          created_at: string
+          endpoint_url: string
+          id: string
+          is_active: boolean
+          max_tokens: number | null
+          model: string
+          name: string
+          provider: string
+          system_prompt: string | null
+          temperature: number | null
+          updated_at: string
+        }
+        Insert: {
+          api_key_name: string
+          created_at?: string
+          endpoint_url: string
+          id?: string
+          is_active?: boolean
+          max_tokens?: number | null
+          model: string
+          name: string
+          provider: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Update: {
+          api_key_name?: string
+          created_at?: string
+          endpoint_url?: string
+          id?: string
+          is_active?: boolean
+          max_tokens?: number | null
+          model?: string
+          name?: string
+          provider?: string
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

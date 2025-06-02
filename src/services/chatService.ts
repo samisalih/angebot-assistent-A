@@ -1,6 +1,7 @@
 
-// This service will handle the AI chat functionality
-// In the final implementation, this will connect to your backend/Supabase
+import { supabase } from "@/integrations/supabase/client";
+
+// This service will handle the AI chat functionality using endpoints from Supabase
 
 interface ChatResponse {
   message: string;
@@ -14,12 +15,76 @@ interface Message {
   timestamp: Date;
 }
 
+interface AIEndpoint {
+  id: string;
+  name: string;
+  provider: string;
+  endpoint_url: string;
+  model: string;
+  api_key_name: string;
+  is_active: boolean;
+  max_tokens: number;
+  temperature: number;
+  system_prompt: string;
+}
+
 class ChatService {
+  private async getActiveEndpoint(): Promise<AIEndpoint | null> {
+    try {
+      const { data, error } = await supabase
+        .from('ai_endpoints')
+        .select('*')
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching active endpoint:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error in getActiveEndpoint:', error);
+      return null;
+    }
+  }
+
   async sendMessage(message: string, context: Message[]): Promise<ChatResponse> {
+    const endpoint = await this.getActiveEndpoint();
+    
+    if (!endpoint) {
+      // Fallback to mock response if no endpoint is configured
+      return this.getMockResponse(message, context);
+    }
+
+    try {
+      // Call the AI endpoint via Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('chat-with-ai', {
+        body: {
+          message,
+          context: context.slice(-5), // Send last 5 messages for context
+          endpointId: endpoint.id
+        }
+      });
+
+      if (error) throw error;
+
+      return {
+        message: data.message,
+        offer: data.offer
+      };
+    } catch (error) {
+      console.error('Error calling AI endpoint:', error);
+      // Fallback to mock response on error
+      return this.getMockResponse(message, context);
+    }
+  }
+
+  private async getMockResponse(message: string, context: Message[]): Promise<ChatResponse> {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
-    // Mock response based on message content
     const lowerMessage = message.toLowerCase();
     
     if (lowerMessage.includes("angebot") || lowerMessage.includes("preis") || 
