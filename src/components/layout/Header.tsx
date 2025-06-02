@@ -1,12 +1,27 @@
 
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, User, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <header className="bg-transparent">
       <div className="container mx-auto px-4 lg:px-8">
@@ -23,8 +38,33 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
             </Button>
           </div>
 
-          {/* Empty space where user actions were */}
+          {/* User Authentication Status */}
           <div className="flex items-center space-x-2">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {user.email}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Mein Konto</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center space-x-2">
+                    <LogOut className="h-4 w-4" />
+                    <span>Abmelden</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Nicht angemeldet</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
