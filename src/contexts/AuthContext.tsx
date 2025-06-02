@@ -35,6 +35,43 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     let mounted = true;
 
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
+        
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+
+        // Handle email confirmation
+        if (event === 'SIGNED_IN' && session) {
+          console.log('User signed in successfully');
+          
+          // Check if this is coming from email confirmation
+          const urlParams = new URLSearchParams(window.location.search);
+          const type = urlParams.get('type');
+          const access_token = urlParams.get('access_token');
+          
+          if (type === 'signup' && access_token) {
+            // This is an email confirmation, redirect to success page
+            console.log('Email confirmation detected, redirecting to success page');
+            window.location.href = '/auth-success';
+          }
+        }
+
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully');
+        }
+
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out');
+        }
+      }
+    );
+
     // Get initial session
     const getInitialSession = async () => {
       try {
@@ -55,29 +92,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       }
     };
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
-        
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          setLoading(false);
-        }
-
-        // Handle successful email confirmation
-        if (event === 'SIGNED_IN' && session) {
-          // Check if this is a confirmation event (user just confirmed email)
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get('type') === 'signup') {
-            // This is an email confirmation, redirect to success page
-            window.location.href = '/auth-success';
-          }
-        }
-      }
-    );
 
     getInitialSession();
 
@@ -124,7 +138,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (error) {
         console.error('Sign up error:', error);
       } else {
-        console.log('Sign up successful');
+        console.log('Sign up successful - check email for confirmation');
       }
       
       return { error };

@@ -46,7 +46,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
       if (error.message?.includes('Email not confirmed')) {
         toast({
           title: 'E-Mail nicht bestätigt',
-          description: 'Bitte überprüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den Bestätigungslink. Falls Sie keine E-Mail erhalten haben, registrieren Sie sich erneut.',
+          description: 'Bitte überprüfen Sie Ihr E-Mail-Postfach und klicken Sie auf den Bestätigungslink. Der Link öffnet sich in einem neuen Tab.',
           variant: 'destructive',
         });
       } else if (error.message?.includes('Invalid login credentials')) {
@@ -98,7 +98,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
       if (error.message?.includes('User already registered')) {
         toast({
           title: 'Benutzer bereits registriert',
-          description: 'Diese E-Mail-Adresse ist bereits registriert. Versuchen Sie sich anzumelden oder verwenden Sie eine andere E-Mail-Adresse.',
+          description: 'Diese E-Mail-Adresse ist bereits registriert. Versuchen Sie sich anzumelden.',
           variant: 'destructive',
         });
       } else {
@@ -114,6 +114,10 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
         title: 'Registrierung erfolgreich',
         description: 'Bitte überprüfen Sie Ihre E-Mail für die Bestätigung. Der Bestätigungslink öffnet sich in einem neuen Tab.',
       });
+      // Clear form after successful signup
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
     }
 
     setLoading(false);
@@ -161,7 +165,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
               </Button>
               <div className="text-sm text-muted-foreground text-center">
                 Falls Sie eine "E-Mail nicht bestätigt" Fehlermeldung erhalten, 
-                registrieren Sie sich bitte erneut mit derselben E-Mail-Adresse.
+                klicken Sie bitte auf den Bestätigungslink in Ihrer E-Mail.
               </div>
             </form>
           </TabsContent>
