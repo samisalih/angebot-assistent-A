@@ -24,10 +24,15 @@ serve(async (req) => {
   try {
     const { message, context, provider, config } = await req.json();
 
-    // Get the API key from environment
-    const apiKey = Deno.env.get(config.api_key_name);
+    // Get the API key from environment or config
+    let apiKey = Deno.env.get(config.api_key_name);
+    if (!apiKey && config.api_key) {
+      // Use API key from database if not found in environment
+      apiKey = config.api_key;
+    }
+    
     if (!apiKey) {
-      throw new Error(`API key ${config.api_key_name} not found in environment`);
+      throw new Error(`API key ${config.api_key_name} not found in environment or config`);
     }
 
     // Prepare messages for the AI

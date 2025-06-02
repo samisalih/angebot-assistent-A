@@ -17,30 +17,15 @@ interface Message {
 
 interface AIServiceConfig {
   id: string;
-  openai_name: string | null;
-  openai_endpoint_url: string | null;
-  openai_model: string | null;
-  openai_api_key_name: string | null;
-  openai_is_active: boolean | null;
-  openai_max_tokens: number | null;
-  openai_temperature: number | null;
-  openai_system_prompt: string | null;
-  anthropic_name: string | null;
-  anthropic_endpoint_url: string | null;
-  anthropic_model: string | null;
-  anthropic_api_key_name: string | null;
-  anthropic_is_active: boolean | null;
-  anthropic_max_tokens: number | null;
-  anthropic_temperature: number | null;
-  anthropic_system_prompt: string | null;
-  gemini_name: string | null;
-  gemini_endpoint_url: string | null;
-  gemini_model: string | null;
-  gemini_api_key_name: string | null;
-  gemini_is_active: boolean | null;
-  gemini_max_tokens: number | null;
-  gemini_temperature: number | null;
-  gemini_system_prompt: string | null;
+  service_name: string;
+  endpoint_url: string;
+  api_key_name: string;
+  api_key: string | null;
+  is_active: boolean;
+  model: string | null;
+  max_tokens: number;
+  temperature: number;
+  system_prompt: string | null;
 }
 
 class ChatService {
@@ -52,6 +37,8 @@ class ChatService {
       const { data, error } = await supabase
         .from('ai_service_config')
         .select('*')
+        .eq('is_active', true)
+        .order('service_name')
         .limit(1)
         .single();
 
@@ -62,56 +49,27 @@ class ChatService {
 
       const config = data as AIServiceConfig;
       
-      // Check which service is active (prioritize OpenAI, then Anthropic, then Gemini)
-      if (config.openai_is_active) {
-        return {
-          provider: 'openai',
-          config: {
-            id: config.id,
-            name: config.openai_name,
-            endpoint_url: config.openai_endpoint_url,
-            model: config.openai_model,
-            api_key_name: config.openai_api_key_name,
-            max_tokens: config.openai_max_tokens,
-            temperature: config.openai_temperature,
-            system_prompt: config.openai_system_prompt,
-          }
-        };
-      }
-      
-      if (config.anthropic_is_active) {
-        return {
-          provider: 'anthropic',
-          config: {
-            id: config.id,
-            name: config.anthropic_name,
-            endpoint_url: config.anthropic_endpoint_url,
-            model: config.anthropic_model,
-            api_key_name: config.anthropic_api_key_name,
-            max_tokens: config.anthropic_max_tokens,
-            temperature: config.anthropic_temperature,
-            system_prompt: config.anthropic_system_prompt,
-          }
-        };
-      }
-      
-      if (config.gemini_is_active) {
-        return {
-          provider: 'gemini',
-          config: {
-            id: config.id,
-            name: config.gemini_name,
-            endpoint_url: config.gemini_endpoint_url,
-            model: config.gemini_model,
-            api_key_name: config.gemini_api_key_name,
-            max_tokens: config.gemini_max_tokens,
-            temperature: config.gemini_temperature,
-            system_prompt: config.gemini_system_prompt,
-          }
-        };
+      // Determine provider type based on service name
+      let provider = 'openai'; // default
+      if (config.service_name.toLowerCase().includes('anthropic')) {
+        provider = 'anthropic';
+      } else if (config.service_name.toLowerCase().includes('gemini')) {
+        provider = 'gemini';
       }
 
-      return null;
+      return {
+        provider,
+        config: {
+          id: config.id,
+          name: config.service_name,
+          endpoint_url: config.endpoint_url,
+          model: config.model,
+          api_key_name: config.api_key_name,
+          max_tokens: config.max_tokens,
+          temperature: config.temperature,
+          system_prompt: config.system_prompt,
+        }
+      };
     } catch (error) {
       console.error('Error in getActiveService:', error);
       return null;
