@@ -1,6 +1,5 @@
-
 import jsPDF from 'jspdf';
-import { loadTitilliumWebFont } from '@/utils/fontLoader';
+import { loadTitilliumWebFonts } from '@/utils/fontLoader';
 
 interface OfferItem {
   name: string;
@@ -23,30 +22,30 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
   
   const doc = new jsPDF();
   
-  // Try to load Titillium Web font
+  // Try to load Titillium Web fonts
   let fontFamily = 'helvetica'; // Default fallback
   try {
-    console.log('Attempting to load Titillium Web TTF font...');
-    const fontBase64 = await loadTitilliumWebFont();
-    if (fontBase64) {
-      console.log('Font loaded successfully, adding TTF to PDF...');
+    console.log('Attempting to load Titillium Web TTF fonts...');
+    const fonts = await loadTitilliumWebFonts();
+    if (fonts.regular && fonts.bold) {
+      console.log('Fonts loaded successfully, adding TTF to PDF...');
       try {
-        // Add the custom TTF font to jsPDF for both normal and bold
-        doc.addFileToVFS('TitilliumWeb-Regular.ttf', fontBase64);
+        // Add the custom TTF fonts to jsPDF
+        doc.addFileToVFS('TitilliumWeb-Regular.ttf', fonts.regular);
+        doc.addFileToVFS('TitilliumWeb-Bold.ttf', fonts.bold);
         doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'normal');
-        // Use the same font file for bold since we only have regular
-        doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'bold');
+        doc.addFont('TitilliumWeb-Bold.ttf', 'TitilliumWeb', 'bold');
         fontFamily = 'TitilliumWeb';
-        console.log('Titillium Web TTF font configured successfully for normal and bold');
+        console.log('Titillium Web TTF fonts configured successfully for normal and bold');
       } catch (fontError) {
-        console.warn('Failed to register TTF font with jsPDF, using helvetica fallback:', fontError);
+        console.warn('Failed to register TTF fonts with jsPDF, using helvetica fallback:', fontError);
         fontFamily = 'helvetica';
       }
     } else {
       console.log('Font base64 was empty, using helvetica fallback');
     }
   } catch (error) {
-    console.warn('Failed to load custom font, using helvetica fallback:', error);
+    console.warn('Failed to load custom fonts, using helvetica fallback:', error);
   }
   
   // Set initial font
