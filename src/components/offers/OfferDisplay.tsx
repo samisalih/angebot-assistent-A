@@ -25,11 +25,11 @@ interface OfferDisplayProps {
 export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
   const { toast } = useToast();
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!offer) return;
     
     try {
-      generateOfferPDF(offer);
+      await generateOfferPDF(offer);
       toast({
         title: "PDF erstellt",
         description: "Ihr Angebot wurde erfolgreich als PDF heruntergeladen.",
