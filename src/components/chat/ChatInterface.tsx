@@ -85,6 +85,15 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       const userStorageKey = `${STORAGE_KEY}_${user.id}`;
       localStorage.setItem(userStorageKey, JSON.stringify(messages));
 
+      // Check if we're approaching the message limit
+      if (messages.length >= 45) {
+        toast({
+          title: "Nachrichtenlimit erreicht",
+          description: `Diese Unterhaltung hat ${messages.length} von maximal 50 Nachrichten. Sie können bald keine weiteren Nachrichten hinzufügen.`,
+          variant: "destructive",
+        });
+      }
+
       // Save to database
       const saveToDatabase = async () => {
         try {
@@ -92,21 +101,40 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             await updateConversation(conversationId, messages);
           } else if (conversationCount < 3) {
             // Only create new conversation if under limit
-            const conversation = await saveConversation(messages, 'Chat Conversation');
-            setConversationId(conversation.id);
-            setConversationCount(prev => prev + 1);
+            try {
+              const conversation = await saveConversation(messages, 'Chat Conversation');
+              setConversationId(conversation.id);
+              setConversationCount(prev => prev + 1);
+            } catch (error: any) {
+              if (error.message?.includes('User cannot have more than 3 conversations')) {
+                toast({
+                  title: "Unterhaltungslimit erreicht",
+                  description: "Sie können maximal 3 Unterhaltungen haben. Bitte löschen Sie eine bestehende Unterhaltung, um eine neue zu erstellen.",
+                  variant: "destructive",
+                });
+              } else {
+                throw error;
+              }
+            }
           } else {
-            // If at limit, show warning but don't save
+            // If at limit, don't try to save
             console.warn('Conversation limit reached, not saving new conversation');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error saving conversation to database:', error);
+          if (error.message?.includes('Conversation cannot have more than 50 messages')) {
+            toast({
+              title: "Nachrichtenlimit erreicht",
+              description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht. Bitte starten Sie eine neue Unterhaltung.",
+              variant: "destructive",
+            });
+          }
         }
       };
 
       saveToDatabase();
     }
-  }, [messages, isAuthenticated, user, conversationId, conversationCount]);
+  }, [messages, isAuthenticated, user, conversationId, conversationCount, toast]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -155,10 +183,20 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     const textToSend = messageText || input;
     if (!textToSend.trim() || isLoading) return;
 
+    // Check message limit for current conversation
+    if (messages.length >= 50) {
+      toast({
+        title: "Nachrichtenlimit erreicht",
+        description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht. Bitte starten Sie eine neue Unterhaltung.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check conversation limit for new conversations
     if (!conversationId && isAuthenticated && conversationCount >= 3) {
       toast({
-        title: "Limit erreicht",
+        title: "Unterhaltungslimit erreicht",
         description: "Sie können maximal 3 Unterhaltungen haben. Bitte wählen Sie eine bestehende Unterhaltung aus oder löschen Sie eine, um eine neue zu erstellen.",
         variant: "destructive",
       });
@@ -218,7 +256,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     }
   };
 
-  const isOfferCreationEnabled = canCreateOffer() && !isLoading;
+  const isOfferCreationEnabled = canCreateOffer() && !isLoading && messages.length < 50;
 
   return (
     <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
@@ -241,7 +279,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             )}
             {isAuthenticated && user && (
               <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg text-center text-sm text-primary">
-                Chat wird für {user.email} gespeichert und synchronisiert. ({conversationCount}/3 Unterhaltungen)
+                Chat wird für {user.email} gespeichert und synchronisiert. ({conversationCount}/3 Unterhaltungen, {messages.length}/50 Nachrichten)
               </div>
             )}
             
@@ -268,7 +306,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             disabled={!isOfferCreationEnabled}
             variant="outline"
             className="border-accent/50 text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={!canCreateOffer() ? "Bitte senden Sie mindestens 5 Nachrichten mit jeweils mehr als 50 Wörtern, um ein Angebot zu erstellen." : ""}
+            title={!canCreateOffer() ? "Bitte senden Sie mindestens 5 Nachrichten mit jeweils mehr als 50 Wörtern, um ein Angebot zu erstellen." : messages.length >= 50 ? "Nachrichtenlimit erreicht" : ""}
           >
             <FileText className="h-4 w-4 mr-2" />
             Explizit Angebot anfordern
@@ -280,12 +318,12 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
-            placeholder="Beschreiben Sie Ihre Bedürfnisse... (Shift+Enter für neue Zeile)"
-            disabled={isLoading}
+            placeholder={messages.length >= 50 ? "Nachrichtenlimit erreicht..." : "Beschreiben Sie Ihre Bedürfnisse... (Shift+Enter für neue Zeile)"}
+            disabled={isLoading || messages.length >= 50}
             className="flex-1 min-h-[60px] max-h-[120px] resize-none"
             rows={2}
           />
-          <Button onClick={() => handleSend()} disabled={isLoading || !input.trim()} className="self-end">
+          <Button onClick={() => handleSend()} disabled={isLoading || !input.trim() || messages.length >= 50} className="self-end">
             <Send className="h-4 w-4" />
           </Button>
         </div>
