@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +30,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -44,6 +44,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+
+          // Refresh page on login/logout events (but not on initial load)
+          if (isInitialized && (event === 'SIGNED_IN' || event === 'SIGNED_OUT')) {
+            console.log('Refreshing page due to auth state change:', event);
+            window.location.reload();
+          }
         }
       }
     );
@@ -60,11 +66,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+          setIsInitialized(true);
         }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
         if (mounted) {
           setLoading(false);
+          setIsInitialized(true);
         }
       }
     };
@@ -75,7 +83,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isInitialized]);
 
   const signIn = async (email: string, password: string) => {
     try {
