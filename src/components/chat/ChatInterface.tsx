@@ -7,6 +7,7 @@ import { Send, Bot, User, FileText } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import { chatService } from "@/services/chatService";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   id: string;
@@ -19,7 +20,10 @@ interface ChatInterfaceProps {
   onOfferGenerated: (offer: any) => void;
 }
 
+const STORAGE_KEY = 'chat_messages';
+
 export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
+  const { user, isAuthenticated } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -31,6 +35,35 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load messages from localStorage when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const userStorageKey = `${STORAGE_KEY}_${user.id}`;
+      const savedMessages = localStorage.getItem(userStorageKey);
+      if (savedMessages) {
+        try {
+          const parsedMessages = JSON.parse(savedMessages);
+          // Convert timestamp strings back to Date objects
+          const messagesWithDates = parsedMessages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }));
+          setMessages(messagesWithDates);
+        } catch (error) {
+          console.error('Error loading saved messages:', error);
+        }
+      }
+    }
+  }, [isAuthenticated, user]);
+
+  // Save messages to localStorage when messages change and user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && user && messages.length > 1) { // Don't save if only initial message
+      const userStorageKey = `${STORAGE_KEY}_${user.id}`;
+      localStorage.setItem(userStorageKey, JSON.stringify(messages));
+    }
+  }, [messages, isAuthenticated, user]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -122,6 +155,18 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full">
           <div className="p-4 space-y-4">
+            {/* Show authentication status */}
+            {!isAuthenticated && (
+              <div className="bg-muted/50 border border-muted p-3 rounded-lg text-center text-sm text-muted-foreground">
+                Melden Sie sich an, um Ihre Chat-Unterhaltungen zu speichern und über alle Fenster hinweg zu synchronisieren.
+              </div>
+            )}
+            {isAuthenticated && user && (
+              <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg text-center text-sm text-primary">
+                Chat wird für {user.email} gespeichert und synchronisiert.
+              </div>
+            )}
+            
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}

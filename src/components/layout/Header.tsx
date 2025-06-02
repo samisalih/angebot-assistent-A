@@ -16,7 +16,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAuthenticated } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -40,13 +40,13 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
           {/* User Authentication Status */}
           <div className="flex items-center space-x-2">
-            {user ? (
+            {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
                     <span className="hidden sm:inline">
-                      {user.email}
+                      {user?.email}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>

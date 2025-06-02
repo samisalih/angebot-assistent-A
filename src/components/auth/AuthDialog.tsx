@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,17 +19,21 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  // Close dialog if user becomes authenticated
-  if (user && open) {
-    onOpenChange(false);
-    onSuccess?.();
-  }
+  // Close dialog and call success callback when user becomes authenticated
+  useEffect(() => {
+    if (isAuthenticated && open) {
+      onOpenChange(false);
+      onSuccess?.();
+    }
+  }, [isAuthenticated, open, onOpenChange, onSuccess]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    
     setLoading(true);
 
     console.log('Attempting to sign in with email:', email);
@@ -71,6 +75,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     
     if (password !== confirmPassword) {
       toast({
@@ -107,7 +112,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
       console.log('Sign up successful');
       toast({
         title: 'Registrierung erfolgreich',
-        description: 'Bitte überprüfen Sie Ihre E-Mail für die Bestätigung. Der Link ist 1 Stunde gültig.',
+        description: 'Bitte überprüfen Sie Ihre E-Mail für die Bestätigung. Der Bestätigungslink öffnet sich in einem neuen Tab.',
       });
     }
 
@@ -137,6 +142,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -147,6 +153,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
@@ -169,6 +176,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -179,6 +187,7 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -189,13 +198,15 @@ export const AuthDialog = ({ open, onOpenChange, onSuccess }: AuthDialogProps) =
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Registrierung...' : 'Registrieren'}
               </Button>
               <div className="text-sm text-muted-foreground text-center">
-                Nach der Registrierung erhalten Sie eine E-Mail zur Bestätigung Ihres Kontos.
+                Nach der Registrierung erhalten Sie eine E-Mail zur Bestätigung. 
+                Der Bestätigungslink öffnet sich in einem neuen Tab.
               </div>
             </form>
           </TabsContent>

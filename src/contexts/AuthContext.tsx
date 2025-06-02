@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,68 +33,114 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let mounted = true;
+
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state change:', event, session);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
+        
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
+        }
+
+        // Handle successful email confirmation
+        if (event === 'SIGNED_IN' && session) {
+          // Check if this is a confirmation event (user just confirmed email)
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('type') === 'signup') {
+            // This is an email confirmation, redirect to success page
+            window.location.href = '/auth-success';
+          }
+        }
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    getInitialSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    console.log('Attempting sign in for:', email);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      console.error('Sign in error:', error);
+    try {
+      console.log('Attempting sign in for:', email);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+      } else {
+        console.log('Sign in successful');
+      }
+      
+      return { error };
+    } catch (error) {
+      console.error('Unexpected error in signIn:', error);
+      return { error };
     }
-    
-    return { error };
   };
 
   const signUp = async (email: string, password: string) => {
-    // Use the current domain instead of localhost
-    const currentDomain = window.location.hostname === 'localhost' 
-      ? 'https://298558f6-9f08-498d-80d7-12364d2ebd23.lovableproject.com'
-      : window.location.origin;
-    
-    const redirectUrl = `${currentDomain}/`;
-    
-    console.log('Attempting sign up for:', email, 'with redirect URL:', redirectUrl);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl
+    try {
+      const redirectUrl = `${window.location.origin}/auth-success`;
+      
+      console.log('Attempting sign up for:', email, 'with redirect URL:', redirectUrl);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+      
+      if (error) {
+        console.error('Sign up error:', error);
+      } else {
+        console.log('Sign up successful');
       }
-    });
-    
-    if (error) {
-      console.error('Sign up error:', error);
+      
+      return { error };
+    } catch (error) {
+      console.error('Unexpected error in signUp:', error);
+      return { error };
     }
-    
-    return { error };
   };
 
   const signOut = async () => {
-    console.log('Signing out');
-    await supabase.auth.signOut();
+    try {
+      console.log('Signing out');
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   const value = {
@@ -103,6 +150,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signIn,
     signUp,
     signOut,
+    isAuthenticated: !!session?.user,
   };
 
   return (
