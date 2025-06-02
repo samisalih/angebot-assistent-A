@@ -30,42 +30,61 @@ class ChatService {
     config: any;
   } | null> {
     try {
-      const { data, error } = await supabase
+      // First, try to find a service with an API key stored in the database
+      const { data: servicesWithKeys, error: keyError } = await supabase
+        .from('ai_service_config')
+        .select('*')
+        .not('api_key', 'is', null)
+        .order('service_name')
+        .limit(1);
+
+      if (!keyError && servicesWithKeys && servicesWithKeys.length > 0) {
+        const config = servicesWithKeys[0] as AIServiceConfig;
+        console.log('Using service with stored API key:', config.service_name);
+        return this.formatServiceConfig(config);
+      }
+
+      // If no service with stored API key, try to find any service and check environment
+      const { data: allServices, error: allError } = await supabase
         .from('ai_service_config')
         .select('*')
         .order('service_name')
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (error) {
-        console.error('Error fetching service config:', error);
+      if (allError || !allServices || allServices.length === 0) {
+        console.error('No AI services configured');
         return null;
       }
 
-      const config = data as AIServiceConfig;
-      
-      // Determine provider type based on service name
-      let provider = 'openai'; // default
-      if (config.service_name.toLowerCase().includes('anthropic')) {
-        provider = 'anthropic';
-      } else if (config.service_name.toLowerCase().includes('gemini')) {
-        provider = 'gemini';
-      }
-
-      return {
-        provider,
-        config: {
-          id: config.id,
-          name: config.service_name,
-          endpoint_url: config.endpoint_url,
-          api_key_name: config.api_key_name,
-          system_prompt: config.system_prompt,
-        }
-      };
+      const config = allServices[0] as AIServiceConfig;
+      console.log('Using service (will check environment for API key):', config.service_name);
+      return this.formatServiceConfig(config);
     } catch (error) {
       console.error('Error in getActiveService:', error);
       return null;
     }
+  }
+
+  private formatServiceConfig(config: AIServiceConfig) {
+    // Determine provider type based on service name
+    let provider = 'openai'; // default
+    if (config.service_name.toLowerCase().includes('anthropic')) {
+      provider = 'anthropic';
+    } else if (config.service_name.toLowerCase().includes('gemini')) {
+      provider = 'gemini';
+    }
+
+    return {
+      provider,
+      config: {
+        id: config.id,
+        name: config.service_name,
+        endpoint_url: config.endpoint_url,
+        api_key_name: config.api_key_name,
+        api_key: config.api_key,
+        system_prompt: config.system_prompt,
+      }
+    };
   }
 
   async sendMessage(message: string, context: Message[]): Promise<ChatResponse> {
@@ -73,10 +92,13 @@ class ChatService {
     
     if (!activeService) {
       // Fallback to mock response if no service is configured
+      console.warn('No AI service configured, using mock response');
       return this.getMockResponse(message, context);
     }
 
     try {
+      console.log('Calling AI service via Edge Function:', activeService.config.name);
+      
       // Call the AI service via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: {
@@ -87,7 +109,16 @@ class ChatService {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge Function error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error('No response from AI service');
+      }
+
+      console.log('AI response received:', data);
 
       return {
         message: data.message,
@@ -138,18 +169,18 @@ class ChatService {
       };
 
       return {
-        message: "Perfekt! Basierend auf unserer Unterhaltung habe ich ein maßgeschneidertes Angebot für Sie erstellt. Sie finden alle Details im Angebots-Bereich rechts. Gerne können wir die Leistungen noch anpassen oder Sie können direkt einen Beratungstermin vereinbaren.",
+        message: "Perfekt! Basierend auf unserer Unterhaltung habe ich ein maßgeschneidertes Angebot für Sie erstellt. Sie finden alle Details im Angebots-Bereich rechts. Gerne können wir die Leistungen noch anpassen oder Sie können direkt einen Beratungstermin vereinbaren. (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
         offer: mockOffer,
       };
     }
 
     // Mock responses for different topics
     const responses = [
-      "Das verstehe ich. Können Sie mir mehr Details zu Ihren spezifischen Anforderungen geben?",
-      "Interessant! Um Ihnen das beste Angebot erstellen zu können, benötige ich noch einige Informationen. Was sind Ihre wichtigsten Ziele?",
-      "Vielen Dank für diese Informationen. Welches Budget haben Sie sich für dieses Projekt vorgestellt?",
-      "Das klingt nach einem spannenden Projekt. Gibt es bestimmte Zeitrahmen oder Deadlines, die wir beachten sollten?",
-      "Perfekt! Lassen Sie mich ein paar weitere Fragen stellen, um sicherzustellen, dass wir alle Ihre Bedürfnisse abdecken.",
+      "Das verstehe ich. Können Sie mir mehr Details zu Ihren spezifischen Anforderungen geben? (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
+      "Interessant! Um Ihnen das beste Angebot erstellen zu können, benötige ich noch einige Informationen. Was sind Ihre wichtigsten Ziele? (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
+      "Vielen Dank für diese Informationen. Welches Budget haben Sie sich für dieses Projekt vorgestellt? (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
+      "Das klingt nach einem spannenden Projekt. Gibt es bestimmte Zeitrahmen oder Deadlines, die wir beachten sollten? (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
+      "Perfekt! Lassen Sie mich ein paar weitere Fragen stellen, um sicherzustellen, dass wir alle Ihre Bedürfnisse abdecken. (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
     ];
 
     return {

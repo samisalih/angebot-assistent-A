@@ -23,15 +23,21 @@ serve(async (req) => {
   try {
     const { message, context, provider, config } = await req.json();
 
-    // Get the API key from environment or config
-    let apiKey = Deno.env.get(config.api_key_name);
-    if (!apiKey && config.api_key) {
-      // Use API key from database if not found in environment
-      apiKey = config.api_key;
+    console.log('Processing chat request:', {
+      provider,
+      configName: config.name,
+      hasStoredKey: !!config.api_key,
+      keyName: config.api_key_name
+    });
+
+    // Get the API key from stored value or environment
+    let apiKey = config.api_key; // First try stored API key
+    if (!apiKey) {
+      apiKey = Deno.env.get(config.api_key_name); // Fallback to environment
     }
     
     if (!apiKey) {
-      throw new Error(`API key ${config.api_key_name} not found in environment or config`);
+      throw new Error(`API key ${config.api_key_name} not found in config or environment. Please configure it in the admin panel or set as environment variable.`);
     }
 
     // Prepare messages for the AI
@@ -54,6 +60,7 @@ serve(async (req) => {
 
     // Handle different providers
     if (provider === 'openai') {
+      console.log('Calling OpenAI API');
       const response = await fetch(config.endpoint_url, {
         method: 'POST',
         headers: {
@@ -61,20 +68,23 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini', // Use default model
+          model: 'gpt-4o-mini',
           messages: messages,
-          max_tokens: 1000, // Use default max_tokens
-          temperature: 0.7, // Use default temperature
+          max_tokens: 1000,
+          temperature: 0.7,
         }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('OpenAI API error:', response.status, errorText);
         throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       aiMessage = data.choices[0].message.content;
     } else if (provider === 'anthropic') {
+      console.log('Calling Anthropic API');
       // Anthropic format is different - system message is separate
       const systemMessage = config.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.';
       const anthropicMessages = messages.slice(1); // Remove system message
@@ -87,21 +97,24 @@ serve(async (req) => {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-3-sonnet-20240229', // Use default model
-          max_tokens: 1000, // Use default max_tokens
-          temperature: 0.7, // Use default temperature
+          model: 'claude-3-sonnet-20240229',
+          max_tokens: 1000,
+          temperature: 0.7,
           system: systemMessage,
           messages: anthropicMessages,
         }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Anthropic API error:', response.status, errorText);
         throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       aiMessage = data.content[0].text;
     } else if (provider === 'gemini') {
+      console.log('Calling Gemini API');
       // Gemini format is different
       const response = await fetch(`${config.endpoint_url}?key=${apiKey}`, {
         method: 'POST',
@@ -115,19 +128,23 @@ serve(async (req) => {
             }]
           }],
           generationConfig: {
-            temperature: 0.7, // Use default temperature
-            maxOutputTokens: 1000, // Use default max_tokens
+            temperature: 0.7,
+            maxOutputTokens: 1000,
           }
         }),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', response.status, errorText);
         throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       aiMessage = data.candidates[0].content.parts[0].text;
     }
+
+    console.log('AI response generated successfully');
 
     // Check if we should generate an offer
     let offer = null;
