@@ -40,9 +40,29 @@ serve(async (req) => {
       throw new Error(`API key ${config.api_key_name} not found in config or environment. Please configure it in the admin panel or set as environment variable.`);
     }
 
+    // Enhanced system prompt for offer generation
+    const enhancedSystemPrompt = `${config.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.'}
+
+WICHTIGE ANWEISUNGEN FÜR ANGEBOTSERSTELLUNG:
+- Sie können Angebote erstellen, aber NUR wenn der Kunde explizit nach einem Angebot, Preis oder Kostenvoranschlag fragt
+- Erstellen Sie KEINE Angebote automatisch nur weil das Gespräch länger wird
+- Wenn Sie ein Angebot erstellen möchten, fügen Sie am Ende Ihrer Antwort folgendes hinzu:
+  [OFFER_REQUEST]
+  Titel: [Titel des Angebots]
+  Beschreibung: [Kurze Beschreibung]
+  Items: [Item1|Beschreibung1|Preis1|Menge1], [Item2|Beschreibung2|Preis2|Menge2], ...
+  [/OFFER_REQUEST]
+
+Beispiel:
+[OFFER_REQUEST]
+Titel: Beratungspaket Digitalisierung
+Beschreibung: Umfassende Beratung für Ihr Digitalisierungsprojekt
+Items: Initial-Beratung|Analyse der aktuellen Situation|150|2, Strategieentwicklung|Entwicklung einer Digitalstrategie|300|1, Implementierung|Begleitung bei der Umsetzung|200|3
+[/OFFER_REQUEST]`;
+
     // Prepare messages for the AI
     const messages = [
-      { role: 'system', content: config.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.' }
+      { role: 'system', content: enhancedSystemPrompt }
     ];
 
     // Add context messages
@@ -86,7 +106,7 @@ serve(async (req) => {
     } else if (provider === 'anthropic') {
       console.log('Calling Anthropic API');
       // Anthropic format is different - system message is separate
-      const systemMessage = config.system_prompt || 'Sie sind ein hilfsreicher KI-Berater.';
+      const systemMessage = enhancedSystemPrompt;
       const anthropicMessages = messages.slice(1); // Remove system message
 
       const response = await fetch(config.endpoint_url, {
@@ -146,43 +166,62 @@ serve(async (req) => {
 
     console.log('AI response generated successfully');
 
-    // Check if we should generate an offer
+    // Parse offer from AI response
     let offer = null;
-    const lowerMessage = message.toLowerCase();
-    if (lowerMessage.includes("angebot") || lowerMessage.includes("preis") || 
-        lowerMessage.includes("kosten") || context.length > 3) {
+    let cleanMessage = aiMessage;
+
+    const offerMatch = aiMessage.match(/\[OFFER_REQUEST\]([\s\S]*?)\[\/OFFER_REQUEST\]/);
+    if (offerMatch) {
+      const offerContent = offerMatch[1].trim();
       
-      offer = {
-        id: `offer-${Date.now()}`,
-        title: "Maßgeschneiderte Beratungslösung",
-        description: "Basierend auf Ihren Anforderungen haben wir folgendes Angebot zusammengestellt:",
-        items: [
-          {
-            name: "Initial-Beratung",
-            description: "Umfassende Analyse Ihrer aktuellen Situation",
-            price: 150,
-            quantity: 2,
-          },
-          {
-            name: "Strategieentwicklung",
-            description: "Entwicklung einer maßgeschneiderten Strategie",
-            price: 300,
-            quantity: 1,
-          },
-          {
-            name: "Implementierungsunterstützung",
-            description: "Begleitung bei der Umsetzung",
-            price: 200,
-            quantity: 3,
-          },
-        ],
-        totalPrice: 1500,
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-      };
+      try {
+        // Parse the offer content
+        const titleMatch = offerContent.match(/Titel:\s*(.+)/);
+        const descMatch = offerContent.match(/Beschreibung:\s*(.+)/);
+        const itemsMatch = offerContent.match(/Items:\s*(.+)/);
+
+        if (titleMatch && descMatch && itemsMatch) {
+          const title = titleMatch[1].trim();
+          const description = descMatch[1].trim();
+          const itemsStr = itemsMatch[1].trim();
+
+          // Parse items
+          const items = itemsStr.split(',').map(item => {
+            const parts = item.trim().split('|');
+            if (parts.length === 4) {
+              return {
+                name: parts[0].trim(),
+                description: parts[1].trim(),
+                price: parseFloat(parts[2].trim()),
+                quantity: parseInt(parts[3].trim()),
+              };
+            }
+            return null;
+          }).filter(item => item !== null);
+
+          if (items.length > 0) {
+            const totalPrice = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            offer = {
+              id: `offer-${Date.now()}`,
+              title,
+              description,
+              items,
+              totalPrice,
+              validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing offer:', error);
+      }
+
+      // Remove the offer request from the message
+      cleanMessage = aiMessage.replace(/\[OFFER_REQUEST\][\s\S]*?\[\/OFFER_REQUEST\]/, '').trim();
     }
 
     return new Response(JSON.stringify({ 
-      message: aiMessage,
+      message: cleanMessage,
       offer: offer
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
