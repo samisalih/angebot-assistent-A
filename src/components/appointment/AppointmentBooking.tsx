@@ -43,18 +43,20 @@ export const AppointmentBooking = () => {
       <ResizablePanelGroup direction="horizontal" className="h-[calc(100%-120px)]">
         {/* Calendar Panel */}
         <ResizablePanel defaultSize={40} minSize={30} className="flex flex-col">
-          <Card className="h-full">
+          <Card className="h-full flex flex-col">
             <CardHeader>
               <CardTitle>Datum wählen</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex items-start justify-center pt-4">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                disabled={(date) => date < new Date() || date.getDay() === 0 || date.getDay() === 6}
-                className="rounded-md border"
-              />
+            <CardContent className="flex-1 flex flex-col">
+              <div className="flex-1 flex items-center justify-center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  disabled={(date) => date < new Date() || date.getDay() === 0 || date.getDay() === 6}
+                  className="rounded-md border w-full h-full flex flex-col justify-center"
+                />
+              </div>
             </CardContent>
           </Card>
         </ResizablePanel>
