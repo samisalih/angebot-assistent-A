@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { loadTitilliumWebFont } from '@/utils/fontLoader';
 
@@ -26,21 +25,25 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
   // Try to load Titillium Web font
   let fontFamily = 'helvetica'; // Default fallback
   try {
-    console.log('Attempting to load Titillium Web font...');
+    console.log('Attempting to load Titillium Web TTF font...');
     const fontBase64 = await loadTitilliumWebFont();
     if (fontBase64) {
-      console.log('Font loaded successfully, adding to PDF...');
-      // Add the custom font to jsPDF
-      doc.addFileToVFS('TitilliumWeb-Regular.ttf', fontBase64);
-      doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'normal');
-      doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'bold'); // Using same for bold for now
-      fontFamily = 'TitilliumWeb';
-      console.log('Titillium Web font configured successfully');
+      console.log('Font loaded successfully, adding TTF to PDF...');
+      try {
+        // Add the custom TTF font to jsPDF
+        doc.addFileToVFS('TitilliumWeb-Regular.ttf', fontBase64);
+        doc.addFont('TitilliumWeb-Regular.ttf', 'TitilliumWeb', 'normal');
+        fontFamily = 'TitilliumWeb';
+        console.log('Titillium Web TTF font configured successfully');
+      } catch (fontError) {
+        console.warn('Failed to register TTF font with jsPDF, using helvetica fallback:', fontError);
+        fontFamily = 'helvetica';
+      }
     } else {
       console.log('Font base64 was empty, using helvetica fallback');
     }
   } catch (error) {
-    console.warn('Failed to load custom font, using fallback:', error);
+    console.warn('Failed to load custom font, using helvetica fallback:', error);
   }
   
   // Set initial font
@@ -80,15 +83,27 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
     let currentY = margins.top + 50;
     doc.setFontSize(16);
     doc.setFont(fontFamily, 'bold');
-    // Wrap title text to prevent overflow
-    const titleLines = doc.splitTextToSize(offer.title, usableWidth);
+    // Only use splitTextToSize if we have a working font, otherwise use simple text
+    let titleLines: string[];
+    try {
+      titleLines = doc.splitTextToSize(offer.title, usableWidth);
+    } catch (splitError) {
+      console.warn('splitTextToSize failed, using simple text:', splitError);
+      titleLines = [offer.title];
+    }
     doc.text(titleLines, margins.left, currentY);
     
     doc.setFontSize(12);
     doc.setFont(fontFamily, 'normal');
     doc.setTextColor(80, 80, 80);
-    // Wrap description text to prevent overflow
-    const descriptionLines = doc.splitTextToSize(offer.description, usableWidth);
+    // Safe text splitting
+    let descriptionLines: string[];
+    try {
+      descriptionLines = doc.splitTextToSize(offer.description, usableWidth);
+    } catch (splitError) {
+      console.warn('splitTextToSize failed for description, using simple text:', splitError);
+      descriptionLines = [offer.description];
+    }
     currentY = margins.top + 50 + (titleLines.length * 6) + 5;
     doc.text(descriptionLines, margins.left, currentY);
     
@@ -137,9 +152,16 @@ export const generateOfferPDF = async (offer: Offer): Promise<void> => {
       
       const itemTotal = item.price * item.quantity;
       
-      // Wrap text for long descriptions with proper width limits
-      const splitDescription = doc.splitTextToSize(item.description, 65);
-      const splitName = doc.splitTextToSize(item.name, 45);
+      // Safe text wrapping with fallback
+      let splitDescription: string[], splitName: string[];
+      try {
+        splitDescription = doc.splitTextToSize(item.description, 65);
+        splitName = doc.splitTextToSize(item.name, 45);
+      } catch (splitError) {
+        console.warn('splitTextToSize failed for item, using simple text:', splitError);
+        splitDescription = [item.description];
+        splitName = [item.name];
+      }
       
       doc.text(splitName, margins.left, currentY);
       doc.text(splitDescription, margins.left + 50, currentY);

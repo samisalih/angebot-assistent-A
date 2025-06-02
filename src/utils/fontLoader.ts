@@ -1,22 +1,24 @@
 
-// Font loader utility for loading Titillium Web into jsPDF
+// Font loader utility for loading Titillium Web TTF into jsPDF
 export const loadTitilliumWebFont = async (): Promise<string> => {
-  // This loads Titillium Web Regular from Google Fonts
-  const fontUrl = 'https://fonts.gstatic.com/s/titilliumweb/v17/NaPecZTIAOhVxoMyOr9n_E7fdM3mDbRS.woff2';
+  // Using a CDN that provides TTF files instead of WOFF2
+  const fontUrl = 'https://github.com/google/fonts/raw/main/ofl/titilliumweb/TitilliumWeb-Regular.ttf';
   
   try {
-    console.log('Fetching font from:', fontUrl);
+    console.log('Fetching Titillium Web TTF font from:', fontUrl);
     const response = await fetch(fontUrl);
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.warn(`Font fetch failed with status: ${response.status}, falling back to helvetica`);
+      return '';
     }
     
     const arrayBuffer = await response.arrayBuffer();
     console.log('Font arrayBuffer size:', arrayBuffer.byteLength);
     
     if (arrayBuffer.byteLength === 0) {
-      throw new Error('Empty font file received');
+      console.warn('Empty font file received, falling back to helvetica');
+      return '';
     }
     
     // Convert ArrayBuffer to base64
@@ -31,11 +33,11 @@ export const loadTitilliumWebFont = async (): Promise<string> => {
     }
     
     const base64 = btoa(binaryString);
-    console.log('Font converted to base64, length:', base64.length);
+    console.log('Titillium Web TTF converted to base64, length:', base64.length);
     
     return base64;
   } catch (error) {
-    console.error('Error loading Titillium Web font:', error);
+    console.warn('Error loading Titillium Web font, falling back to helvetica:', error);
     return '';
   }
 };
