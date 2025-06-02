@@ -115,6 +115,72 @@ class ChatService {
     };
   }
 
+  async generateConversationTitle(messages: Message[]): Promise<string> {
+    const activeService = await this.getActiveService();
+    
+    if (!activeService) {
+      // Fallback title if no service is configured
+      const userMessages = messages.filter(msg => msg.sender === "user");
+      if (userMessages.length > 0) {
+        const firstMessage = userMessages[0].content;
+        return firstMessage.length > 50 ? firstMessage.substring(0, 50) + "..." : firstMessage;
+      }
+      return "Chat Conversation";
+    }
+
+    try {
+      // Get the first few user messages to generate a title
+      const userMessages = messages
+        .filter(msg => msg.sender === "user")
+        .slice(0, 3)
+        .map(msg => msg.content)
+        .join(" ");
+
+      if (!userMessages) {
+        return "Chat Conversation";
+      }
+
+      console.log('Generating conversation title via Edge Function');
+      
+      const { data, error } = await supabase.functions.invoke('chat-with-ai', {
+        body: {
+          message: `Erstellen Sie einen kurzen, prägnanten Titel (maximal 5 Wörter) für eine Unterhaltung basierend auf diesem Inhalt: "${userMessages}". Antworten Sie nur mit dem Titel, keine zusätzlichen Erklärungen.`,
+          context: [],
+          provider: activeService.provider,
+          config: {
+            ...activeService.config,
+            system_prompt: "Sie sind ein Experte darin, prägnante Titel für Unterhaltungen zu erstellen. Erstellen Sie kurze, aussagekräftige Titel mit maximal 5 Wörtern auf Deutsch."
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Error generating title:', error);
+        throw error;
+      }
+
+      if (data && data.message) {
+        // Clean up the response and ensure it's not too long
+        let title = data.message.trim().replace(/['"]/g, '');
+        if (title.length > 50) {
+          title = title.substring(0, 50) + "...";
+        }
+        return title;
+      }
+
+      throw new Error('No title generated');
+    } catch (error) {
+      console.error('Error generating conversation title:', error);
+      // Fallback to first user message
+      const userMessages = messages.filter(msg => msg.sender === "user");
+      if (userMessages.length > 0) {
+        const firstMessage = userMessages[0].content;
+        return firstMessage.length > 50 ? firstMessage.substring(0, 50) + "..." : firstMessage;
+      }
+      return "Chat Conversation";
+    }
+  }
+
   async sendMessage(message: string, context: Message[]): Promise<ChatResponse> {
     const activeService = await this.getActiveService();
     

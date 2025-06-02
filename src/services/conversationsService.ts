@@ -1,5 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { chatService } from './chatService';
 
 export interface ChatConversation {
   id: string;
@@ -11,12 +11,23 @@ export interface ChatConversation {
 }
 
 export const saveConversation = async (messages: any[], title?: string) => {
+  // Generate title if not provided
+  let conversationTitle = title;
+  if (!conversationTitle && messages.length > 1) {
+    try {
+      conversationTitle = await chatService.generateConversationTitle(messages);
+    } catch (error) {
+      console.error('Error generating title:', error);
+      conversationTitle = 'Chat Conversation';
+    }
+  }
+
   const { data, error } = await supabase
     .from('chat_conversations')
     .insert({
       user_id: (await supabase.auth.getUser()).data.user?.id,
       messages,
-      title: title || 'Chat Conversation',
+      title: conversationTitle || 'Chat Conversation',
     })
     .select()
     .single();
