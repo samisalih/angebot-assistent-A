@@ -8,6 +8,7 @@ import { ChatMessage } from "./ChatMessage";
 import { chatService } from "@/services/chatService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
+import { saveConversation, updateConversation } from "@/services/conversationsService";
 
 interface Message {
   id: string;
@@ -34,6 +35,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load messages from localStorage when user is authenticated
@@ -57,13 +59,29 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     }
   }, [isAuthenticated, user]);
 
-  // Save messages to localStorage when messages change and user is authenticated
+  // Save messages to localStorage and database when messages change and user is authenticated
   useEffect(() => {
-    if (isAuthenticated && user && messages.length > 1) { // Don't save if only initial message
+    if (isAuthenticated && user && messages.length > 1) {
       const userStorageKey = `${STORAGE_KEY}_${user.id}`;
       localStorage.setItem(userStorageKey, JSON.stringify(messages));
+
+      // Save to database
+      const saveToDatabase = async () => {
+        try {
+          if (conversationId) {
+            await updateConversation(conversationId, messages);
+          } else {
+            const conversation = await saveConversation(messages, 'Chat Conversation');
+            setConversationId(conversation.id);
+          }
+        } catch (error) {
+          console.error('Error saving conversation to database:', error);
+        }
+      };
+
+      saveToDatabase();
     }
-  }, [messages, isAuthenticated, user]);
+  }, [messages, isAuthenticated, user, conversationId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

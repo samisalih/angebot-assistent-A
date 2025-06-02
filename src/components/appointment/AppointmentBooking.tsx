@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { TimeSlotGrid } from "./TimeSlotGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { saveAppointment } from "@/services/appointmentsService";
 
 export const AppointmentBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -41,6 +43,14 @@ export const AppointmentBooking = () => {
     setIsBooking(true);
 
     try {
+      // Save appointment to database
+      await saveAppointment({
+        customerName,
+        customerEmail,
+        appointmentDate: selectedDate,
+        appointmentTime: selectedTime,
+      });
+
       // Send appointment confirmation email
       const { data, error } = await supabase.functions.invoke('send-appointment-confirmation', {
         body: {

@@ -42,6 +42,72 @@ export type Database = {
         }
         Relationships: []
       }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          created_at: string
+          customer_email: string
+          customer_name: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          messages: Json
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       knowledge_base: {
         Row: {
           category: string | null
