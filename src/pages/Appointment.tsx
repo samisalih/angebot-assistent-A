@@ -9,12 +9,24 @@ import { AppointmentBooking } from "@/components/appointment/AppointmentBooking"
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowLeft, MessageSquare } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getSavedOffers } from "@/services/offersService";
 
 const Appointment = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { hasGeneratedOffer } = useOffer();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [authDialogOpen, setAuthDialogOpen] = useState(!user);
+
+  // Check for saved offers in addition to current session offer
+  const { data: savedOffers } = useQuery({
+    queryKey: ['saved-offers'],
+    queryFn: getSavedOffers,
+    enabled: isAuthenticated,
+  });
+
+  const hasSavedOffers = savedOffers && savedOffers.length > 0;
+  const hasAnyOffer = hasGeneratedOffer || hasSavedOffers;
 
   if (!user) {
     return (
@@ -43,7 +55,7 @@ const Appointment = () => {
     );
   }
 
-  if (!hasGeneratedOffer) {
+  if (!hasAnyOffer) {
     return (
       <div className="h-screen bg-background flex flex-col overflow-hidden">
         <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
