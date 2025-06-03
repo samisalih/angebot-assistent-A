@@ -46,11 +46,16 @@ export const OfferSelector = ({ selectedOfferId, onOfferSelect }: OfferSelectorP
         try {
           const savedOffers = await getSavedOffers();
           savedOffers.forEach(offer => {
+            let validUntil;
+            if (offer.offer_data && typeof offer.offer_data === 'object' && 'validUntil' in offer.offer_data) {
+              validUntil = offer.offer_data.validUntil as string;
+            }
+            
             availableOffers.push({
               id: offer.id,
               title: offer.title,
               totalPrice: offer.total_price,
-              validUntil: offer.offer_data?.validUntil,
+              validUntil: validUntil,
               source: 'saved'
             });
           });
@@ -113,11 +118,11 @@ export const OfferSelector = ({ selectedOfferId, onOfferSelect }: OfferSelectorP
         <SelectTrigger>
           <SelectValue placeholder="Wählen Sie ein Angebot aus" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="p-2">
           {offers.map((offer) => {
             const validUntilDate = offer.validUntil ? new Date(offer.validUntil) : null;
             return (
-              <SelectItem key={offer.id} value={offer.id}>
+              <SelectItem key={offer.id} value={offer.id} className="p-3">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{offer.title}</span>
