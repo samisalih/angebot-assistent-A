@@ -130,7 +130,7 @@ export const OfferSelector = ({ selectedOfferId, onOfferSelect }: OfferSelectorP
                       {offer.source === 'current' ? 'Aktuell' : 'Gespeichert'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1 pt-1">
                     <div className="flex items-center gap-1">
                       <Euro className="h-3 w-3" />
                       <span>{offer.totalPrice.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}</span>
