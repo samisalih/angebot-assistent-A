@@ -1,13 +1,12 @@
-import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Send, Bot, FileText } from "lucide-react";
-import { ChatMessage } from "./ChatMessage";
+
+import { useState, useEffect } from "react";
 import { chatService } from "@/services/chatService";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { saveConversation, updateConversation, getUserConversation } from "@/services/conversationsService";
 import { useToast } from "@/hooks/use-toast";
+import { MessageList } from "./MessageList";
+import { MessageInput } from "./MessageInput";
+import { OfferRequestButton } from "./OfferRequestButton";
 
 interface Message {
   id: string;
@@ -25,32 +24,16 @@ const STORAGE_KEY = 'chat_messages';
 export const ChatInterface = ({
   onOfferGenerated
 }: ChatInterfaceProps) => {
-  const {
-    user,
-    isAuthenticated
-  } = useAuth();
-  const {
-    toast
-  } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([{
     id: "1",
     content: "Hallo! Ich bin Ihr KI-Berater. Erzählen Sie mir von Ihren Bedürfnissen und ich helfe Ihnen dabei, das perfekte Angebot zu erstellen. Womit kann ich Ihnen heute helfen?",
     sender: "ai",
     timestamp: new Date()
   }]);
-  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Debug: Log messages whenever they change
-  useEffect(() => {
-    console.log('Messages updated:', messages);
-    console.log('Number of messages:', messages.length);
-    messages.forEach((msg, index) => {
-      console.log(`Message ${index + 1}: sender=${msg.sender}, content preview=${msg.content.substring(0, 50)}...`);
-    });
-  }, [messages]);
 
   // Load existing conversation when user is authenticated
   useEffect(() => {
@@ -124,16 +107,6 @@ export const ChatInterface = ({
     }
   }, [messages, isAuthenticated, user, conversationId, toast]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth"
-    });
-  };
-  
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // Helper function to count words in a message
   const countWords = (text: string): number => {
     return text.trim().split(/\s+/).filter(word => word.length > 0).length;
@@ -150,9 +123,8 @@ export const ChatInterface = ({
     return userMessages.every(msg => countWords(msg.content) > 50);
   };
 
-  const handleSend = async (messageText?: string) => {
-    const textToSend = messageText || input;
-    if (!textToSend.trim() || isLoading) return;
+  const handleSend = async (messageText: string) => {
+    if (!messageText.trim() || isLoading) return;
 
     // Check message limit for current conversation
     if (messages.length >= 50) {
@@ -166,19 +138,18 @@ export const ChatInterface = ({
     
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: textToSend,
+      content: messageText,
       sender: "user",
       timestamp: new Date()
     };
     
     console.log('Adding user message:', userMessage);
     setMessages(prev => [...prev, userMessage]);
-    setInput("");
     setIsLoading(true);
     
     try {
       console.log('Calling chat service...');
-      const response = await chatService.sendMessage(textToSend, messages);
+      const response = await chatService.sendMessage(messageText, messages);
       console.log('Chat service response:', response);
       
       const assistantMessage: Message = {
@@ -215,50 +186,33 @@ export const ChatInterface = ({
     await handleSend(offerRequest);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   const isOfferCreationEnabled = canCreateOffer() && !isLoading && messages.length < 50;
+  const isInputDisabled = messages.length >= 50;
+  const inputPlaceholder = messages.length >= 50 
+    ? "Nachrichtenlimit erreicht..." 
+    : "Beschreiben Sie Ihre Bedürfnisse... (Shift+Enter für neue Zeile)";
 
-  return <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
-      {/* Messages */}
-      <div className="flex-1 min-h-0">
-        <ScrollArea className="h-full">
-          <div className="p-4 space-y-4">
-            
-            {messages.map(message => {
-              console.log('Rendering message:', message.id, message.sender);
-              return <ChatMessage key={message.id} message={message} />;
-            })}
-            {isLoading && <div className="flex items-center space-x-2 text-muted-foreground">
-                <Bot className="h-4 w-4 animate-pulse" />
-                <span className="text-sm">Der Assistent tippt...</span>
-              </div>}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
-      </div>
+  return (
+    <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
+      <MessageList messages={messages} isLoading={isLoading} />
 
-      {/* Input */}
+      {/* Input Section */}
       <div className="border-t border-border p-4 space-y-3 flex-shrink-0">
-        {/* Create Offer Button */}
-        <div className="flex justify-center">
-          <Button onClick={handleCreateOffer} disabled={!isOfferCreationEnabled} variant="outline" className="border-accent/50 text-accent hover:bg-accent/10 disabled:opacity-50 disabled:cursor-not-allowed" title={!canCreateOffer() ? "Bitte senden Sie mindestens 5 Nachrichten mit jeweils mehr als 50 Wörtern, um ein Angebot zu erstellen." : messages.length >= 50 ? "Nachrichtenlimit erreicht" : ""}>
-            <FileText className="h-4 w-4 mr-2" />
-            Explizit Angebot anfordern
-          </Button>
-        </div>
+        <OfferRequestButton 
+          onRequestOffer={handleCreateOffer}
+          isEnabled={isOfferCreationEnabled}
+          isLoading={isLoading}
+          messageCount={messages.length}
+          canCreateOffer={canCreateOffer()}
+        />
         
-        <div className="flex space-x-2">
-          <Textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyPress} placeholder={messages.length >= 50 ? "Nachrichtenlimit erreicht..." : "Beschreiben Sie Ihre Bedürfnisse... (Shift+Enter für neue Zeile)"} disabled={isLoading || messages.length >= 50} className="flex-1 min-h-[60px] max-h-[120px] resize-none" rows={2} />
-          <Button onClick={() => handleSend()} disabled={isLoading || !input.trim() || messages.length >= 50} className="self-end">
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+        <MessageInput 
+          onSend={handleSend}
+          isLoading={isLoading}
+          isDisabled={isInputDisabled}
+          placeholder={inputPlaceholder}
+        />
       </div>
-    </div>;
+    </div>
+  );
 };
