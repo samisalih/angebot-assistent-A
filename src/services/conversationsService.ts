@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { chatService } from './chatService';
 
@@ -29,14 +30,18 @@ export const saveConversation = async (messages: any[], title?: string) => {
       messages,
       title: conversationTitle || 'Chat Conversation',
     })
-    .select()
-    .single();
+    .select();
 
   if (error) {
+    console.error('Database error when saving conversation:', error);
     throw error;
   }
 
-  return data;
+  if (!data || data.length === 0) {
+    throw new Error('Failed to save conversation - no data returned');
+  }
+
+  return data[0];
 };
 
 export const updateConversation = async (conversationId: string, messages: any[]) => {
@@ -47,14 +52,18 @@ export const updateConversation = async (conversationId: string, messages: any[]
       updated_at: new Date().toISOString(),
     })
     .eq('id', conversationId)
-    .select()
-    .single();
+    .select();
 
   if (error) {
+    console.error('Database error when updating conversation:', error);
     throw error;
   }
 
-  return data;
+  if (!data || data.length === 0) {
+    throw new Error('Failed to update conversation - no data returned');
+  }
+
+  return data[0];
 };
 
 export const getConversations = async () => {
@@ -64,10 +73,11 @@ export const getConversations = async () => {
     .order('updated_at', { ascending: false });
 
   if (error) {
+    console.error('Database error when getting conversations:', error);
     throw error;
   }
 
-  return data;
+  return data || [];
 };
 
 export const deleteConversation = async (conversationId: string) => {
@@ -77,6 +87,7 @@ export const deleteConversation = async (conversationId: string) => {
     .eq('id', conversationId);
 
   if (error) {
+    console.error('Database error when deleting conversation:', error);
     throw error;
   }
 };
