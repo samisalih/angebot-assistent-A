@@ -1,30 +1,36 @@
 
-import { AIEndpointManager } from "@/components/admin/AIEndpointManager";
+import { SecureAIEndpointManager } from "@/components/admin/SecureAIEndpointManager";
 import { KnowledgeManager } from "@/components/admin/KnowledgeManager";
-import { AdminAuth } from "@/components/admin/AdminAuth";
+import { SecureAdminAuth } from "@/components/admin/SecureAdminAuth";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const Admin = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    // Check if user is already authenticated
-    const authStatus = localStorage.getItem("admin_authenticated");
-    if (authStatus === "true") {
-      setIsAuthenticated(true);
-    }
-  }, []);
+  const { isAdmin, isAdminLoading } = useAdminAuth();
 
   const handleAuthenticated = () => {
-    setIsAuthenticated(true);
+    // This will be handled by the useAdminAuth hook
+    console.log('Admin authenticated');
   };
 
-  if (!isAuthenticated) {
-    return <AdminAuth onAuthenticated={handleAuthenticated} />;
+  // Show loading state while checking admin status
+  if (isAdminLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-semibold">Überprüfe Administrator-Berechtigung...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show secure auth component if not admin
+  if (!isAdmin) {
+    return <SecureAdminAuth onAuthenticated={handleAuthenticated} />;
   }
 
   return (
@@ -40,7 +46,7 @@ const Admin = () => {
               Administrator-Bereich
             </h1>
             <p className="text-muted-foreground">
-              Verwalten Sie KI-Services und die Wissensbasis für optimale Beratung.
+              Sichere Verwaltung von KI-Services und Wissensbasis mit verschlüsselter Datenspeicherung.
             </p>
           </div>
 
@@ -51,7 +57,7 @@ const Admin = () => {
             </TabsList>
             
             <TabsContent value="ai-services">
-              <AIEndpointManager />
+              <SecureAIEndpointManager />
             </TabsContent>
             
             <TabsContent value="knowledge">

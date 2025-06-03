@@ -9,9 +9,88 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_log_admin_user_id_fkey"
+            columns: ["admin_user_id"]
+            isOneToOne: false
+            referencedRelation: "admin_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_users: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          last_login: string | null
+          role: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          role?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          role?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_service_config: {
         Row: {
-          api_key: string | null
           api_key_name: string
           created_at: string
           endpoint_url: string
@@ -19,9 +98,9 @@ export type Database = {
           service_name: string
           system_prompt: string | null
           updated_at: string
+          uses_secret_key: boolean | null
         }
         Insert: {
-          api_key?: string | null
           api_key_name: string
           created_at?: string
           endpoint_url: string
@@ -29,9 +108,9 @@ export type Database = {
           service_name: string
           system_prompt?: string | null
           updated_at?: string
+          uses_secret_key?: boolean | null
         }
         Update: {
-          api_key?: string | null
           api_key_name?: string
           created_at?: string
           endpoint_url?: string
@@ -39,6 +118,7 @@ export type Database = {
           service_name?: string
           system_prompt?: string | null
           updated_at?: string
+          uses_secret_key?: boolean | null
         }
         Relationships: []
       }
@@ -173,7 +253,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_current_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      is_admin_user: {
+        Args: { user_id?: string }
+        Returns: boolean
+      }
+      update_admin_last_login: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
