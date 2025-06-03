@@ -124,7 +124,7 @@ export const OfferDisplay = ({
                       <h5 className="font-medium text-foreground">{item.name}</h5>
                       <p className="text-sm text-muted-foreground">{item.description}</p>
                       <span className="text-xs text-muted-foreground opacity-70">
-                        Menge: {item.quantity}
+                        Stundenaufwand: {item.quantity}
                       </span>
                     </div>
                     <div className="text-right">
