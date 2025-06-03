@@ -11,6 +11,23 @@ export interface SavedOffer {
   updated_at: string;
 }
 
+// Function to clean up expired offers
+const cleanupExpiredOffers = async () => {
+  try {
+    // Delete offers where validUntil date has passed
+    const { error } = await supabase
+      .from('saved_offers')
+      .delete()
+      .lt('offer_data->validUntil', new Date().toISOString());
+
+    if (error) {
+      console.error('Error cleaning up expired offers:', error);
+    }
+  } catch (error) {
+    console.error('Error in cleanup function:', error);
+  }
+};
+
 export const saveOffer = async (offer: any) => {
   const { data, error } = await supabase
     .from('saved_offers')
@@ -31,6 +48,9 @@ export const saveOffer = async (offer: any) => {
 };
 
 export const getSavedOffers = async () => {
+  // Clean up expired offers before fetching
+  await cleanupExpiredOffers();
+
   const { data, error } = await supabase
     .from('saved_offers')
     .select('*')
