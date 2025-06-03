@@ -47,7 +47,11 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
           const conversation = await getUserConversation();
           if (conversation) {
             setConversationId(conversation.id);
-            const messagesWithDates = conversation.messages.map((msg: any) => ({
+            // Properly cast the messages from JSON to array
+            const conversationMessages = Array.isArray(conversation.messages) 
+              ? conversation.messages 
+              : [];
+            const messagesWithDates = conversationMessages.map((msg: any) => ({
               ...msg,
               timestamp: new Date(msg.timestamp)
             }));

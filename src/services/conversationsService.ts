@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { chatService } from './chatService';
 
@@ -24,6 +23,12 @@ export const getUserConversation = async () => {
   }
 
   return data && data.length > 0 ? data[0] : null;
+};
+
+// Keep the old function name for backward compatibility
+export const getConversations = async () => {
+  const conversation = await getUserConversation();
+  return conversation ? [conversation] : [];
 };
 
 export const saveConversation = async (messages: any[], title?: string) => {
