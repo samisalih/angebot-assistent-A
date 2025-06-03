@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -206,13 +205,6 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
 
   return (
     <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30">
-        <div className="flex items-center space-x-2">
-          <h2 className="text-sm font-medium">KI-Berater Chat</h2>
-        </div>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full">
