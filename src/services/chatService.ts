@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // This service will handle the AI chat functionality using endpoints from Supabase
@@ -19,8 +20,8 @@ interface AIServiceConfig {
   service_name: string;
   endpoint_url: string;
   api_key_name: string;
-  api_key: string | null;
   system_prompt: string | null;
+  uses_secret_key: boolean | null;
 }
 
 interface KnowledgeItem {
@@ -36,21 +37,7 @@ class ChatService {
     config: any;
   } | null> {
     try {
-      // First, try to find a service with an API key stored in the database
-      const { data: servicesWithKeys, error: keyError } = await supabase
-        .from('ai_service_config')
-        .select('*')
-        .not('api_key', 'is', null)
-        .order('service_name')
-        .limit(1);
-
-      if (!keyError && servicesWithKeys && servicesWithKeys.length > 0) {
-        const config = servicesWithKeys[0] as AIServiceConfig;
-        console.log('Using service with stored API key:', config.service_name);
-        return this.formatServiceConfig(config);
-      }
-
-      // If no service with stored API key, try to find any service and check environment
+      // Get the first available service configuration
       const { data: allServices, error: allError } = await supabase
         .from('ai_service_config')
         .select('*')
@@ -62,8 +49,8 @@ class ChatService {
         return null;
       }
 
-      const config = allServices[0] as AIServiceConfig;
-      console.log('Using service (will check environment for API key):', config.service_name);
+      const config = allServices[0];
+      console.log('Using service (API key from Supabase secrets):', config.service_name);
       return this.formatServiceConfig(config);
     } catch (error) {
       console.error('Error in getActiveService:', error);
@@ -109,8 +96,8 @@ class ChatService {
         name: config.service_name,
         endpoint_url: config.endpoint_url,
         api_key_name: config.api_key_name,
-        api_key: config.api_key,
         system_prompt: config.system_prompt,
+        uses_secret_key: config.uses_secret_key,
       }
     };
   }

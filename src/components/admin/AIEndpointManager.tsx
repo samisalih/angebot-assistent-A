@@ -16,10 +16,10 @@ interface AIServiceConfig {
   service_name: string;
   endpoint_url: string;
   api_key_name: string;
-  api_key: string | null;
   system_prompt: string | null;
   created_at: string;
   updated_at: string;
+  uses_secret_key: boolean | null;
 }
 
 export const AIEndpointManager = () => {
@@ -33,7 +33,6 @@ export const AIEndpointManager = () => {
     service_name: "",
     endpoint_url: "",
     api_key_name: "",
-    api_key: "",
     system_prompt: "",
   });
 
@@ -67,7 +66,6 @@ export const AIEndpointManager = () => {
       service_name: config.service_name,
       endpoint_url: config.endpoint_url,
       api_key_name: config.api_key_name,
-      api_key: config.api_key || "",
       system_prompt: config.system_prompt || "",
     });
     setEditingId(config.id);
@@ -79,7 +77,6 @@ export const AIEndpointManager = () => {
       service_name: "",
       endpoint_url: "",
       api_key_name: "",
-      api_key: "",
       system_prompt: "",
     });
     setEditingId(null);
@@ -92,9 +89,9 @@ export const AIEndpointManager = () => {
         service_name: formData.service_name,
         endpoint_url: formData.endpoint_url,
         api_key_name: formData.api_key_name,
-        api_key: formData.api_key || null,
         system_prompt: formData.system_prompt || null,
         updated_at: new Date().toISOString(),
+        uses_secret_key: true,
       };
 
       if (editingId) {
@@ -168,7 +165,6 @@ export const AIEndpointManager = () => {
       service_name: "",
       endpoint_url: "",
       api_key_name: "",
-      api_key: "",
       system_prompt: "",
     });
     setEditingId(null);
@@ -184,7 +180,7 @@ export const AIEndpointManager = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">AI Service Konfiguration</h2>
-          <p className="text-muted-foreground">Verwalten Sie Ihre KI-Provider Konfiguration</p>
+          <p className="text-muted-foreground">Verwalten Sie Ihre KI-Provider Konfiguration (API Keys werden sicher in Supabase Secrets gespeichert)</p>
         </div>
         <Button onClick={handleCreate} disabled={editingId !== null || isCreating}>
           <Plus className="h-4 w-4 mr-2" />
@@ -197,6 +193,9 @@ export const AIEndpointManager = () => {
         <Card>
           <CardHeader>
             <CardTitle>{editingId ? 'Service bearbeiten' : 'Neuen Service erstellen'}</CardTitle>
+            <CardDescription>
+              API Keys werden sicher in Supabase Secrets gespeichert. Konfigurieren Sie diese separat über die Supabase Dashboard.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -220,23 +219,12 @@ export const AIEndpointManager = () => {
             </div>
 
             <div>
-              <Label htmlFor="api_key_name">API Key Name</Label>
+              <Label htmlFor="api_key_name">Secret Name (für Supabase Secrets)</Label>
               <Input
                 id="api_key_name"
                 value={formData.api_key_name}
                 onChange={(e) => setFormData({...formData, api_key_name: e.target.value})}
                 placeholder="OPENAI_API_KEY"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="api_key">API Key (optional)</Label>
-              <Input
-                id="api_key"
-                type="password"
-                value={formData.api_key}
-                onChange={(e) => setFormData({...formData, api_key: e.target.value})}
-                placeholder="Leer lassen für Umgebungsvariable"
               />
             </div>
 
@@ -269,7 +257,7 @@ export const AIEndpointManager = () => {
       <Card>
         <CardHeader>
           <CardTitle>Konfigurierte Services</CardTitle>
-          <CardDescription>Übersicht aller AI Services</CardDescription>
+          <CardDescription>Übersicht aller AI Services (API Keys in Supabase Secrets verwaltet)</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -277,7 +265,8 @@ export const AIEndpointManager = () => {
               <TableRow>
                 <TableHead>Service</TableHead>
                 <TableHead>Endpunkt</TableHead>
-                <TableHead>API Key</TableHead>
+                <TableHead>Secret Name</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Aktionen</TableHead>
               </TableRow>
             </TableHeader>
@@ -288,8 +277,11 @@ export const AIEndpointManager = () => {
                     {config.service_name}
                   </TableCell>
                   <TableCell className="max-w-xs truncate">{config.endpoint_url}</TableCell>
+                  <TableCell>{config.api_key_name}</TableCell>
                   <TableCell>
-                    {config.api_key ? "Gesetzt" : config.api_key_name}
+                    <Badge variant={config.uses_secret_key ? "default" : "secondary"}>
+                      {config.uses_secret_key ? "Secrets" : "Legacy"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
