@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit, Save, X, Plus, Trash2, Key, Shield } from "lucide-react";
+import { Edit, Save, X, Plus, Trash2, ExternalLink, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -206,12 +206,21 @@ export const SecureAIEndpointManager = () => {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-start space-x-3">
           <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
-          <div>
-            <h3 className="text-sm font-medium text-blue-900">Sicherheitshinweis</h3>
-            <p className="text-sm text-blue-700 mt-1">
-              API-Schlüssel werden nicht mehr in der Datenbank gespeichert. Verwenden Sie stattdessen Supabase Secrets 
-              für sichere Speicherung. Der API Key Name verweist auf den entsprechenden Secret-Namen.
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-blue-900">Sicherheitshinweis & API Key Verwaltung</h3>
+            <p className="text-sm text-blue-700 mt-1 mb-3">
+              API-Schlüssel werden sicher in Supabase Secrets gespeichert und sind nicht mehr über diese Oberfläche verwaltbar. 
+              Der API Key Name verweist auf den entsprechenden Secret-Namen in Supabase.
             </p>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.open('https://supabase.com/dashboard/project/rwluonpgnqbnmtyidvyr/settings/functions', '_blank')}
+              className="bg-white hover:bg-gray-50"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Supabase Secrets verwalten
+            </Button>
           </div>
         </div>
       </div>
@@ -244,7 +253,7 @@ export const SecureAIEndpointManager = () => {
             </div>
 
             <div>
-              <Label htmlFor="api_key_name">API Key Name (Supabase Secret)</Label>
+              <Label htmlFor="api_key_name">Secret Name (in Supabase)</Label>
               <Input
                 id="api_key_name"
                 value={formData.api_key_name}
@@ -252,7 +261,7 @@ export const SecureAIEndpointManager = () => {
                 placeholder="OPENAI_API_KEY"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Name des Supabase Secrets, der den API-Schlüssel enthält
+                Name des Supabase Secrets, der den API-Schlüssel enthält. Verwalten Sie Secrets über den obigen Link.
               </p>
             </div>
 
@@ -307,7 +316,6 @@ export const SecureAIEndpointManager = () => {
                   <TableCell className="max-w-xs truncate">{config.endpoint_url}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Key className="h-3 w-3 text-muted-foreground" />
                       <span className="font-mono text-xs">{config.api_key_name}</span>
                     </div>
                   </TableCell>
