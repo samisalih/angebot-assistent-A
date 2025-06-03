@@ -101,8 +101,16 @@ export function parseOfferFromMessage(aiMessage: string): { offer: Offer | null;
       console.error('Error parsing offer:', error);
     }
 
-    // Remove the offer content from the message
+    // Remove the entire offer content from the message to prevent prices showing in chat
     cleanMessage = aiMessage.replace(/OFFER_START[\s\S]*?OFFER_END/, '').trim();
+    
+    // Also remove any remaining price mentions that might be in the message
+    // Remove patterns like "€X,XXX" or "XXX €" or "EUR XXX" 
+    cleanMessage = cleanMessage.replace(/\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\s*(?:€|EUR|Euro)\b/gi, '[Preis]');
+    cleanMessage = cleanMessage.replace(/\b(?:€|EUR|Euro)\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\b/gi, '[Preis]');
+    
+    // Remove standalone price patterns
+    cleanMessage = cleanMessage.replace(/\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?\b(?=\s*(?:für|pro|je|gesamt|insgesamt))/gi, '[Preis]');
   }
 
   return { offer, cleanMessage };
