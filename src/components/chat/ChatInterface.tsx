@@ -2,14 +2,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
-import { Send, Bot, User, FileText } from "lucide-react";
+import { Send, Bot, FileText } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
-import { ConversationManager } from "./ConversationManager";
 import { chatService } from "@/services/chatService";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
-import { saveConversation, updateConversation, getConversations } from "@/services/conversationsService";
+import { saveConversation, updateConversation, getUserConversation } from "@/services/conversationsService";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -39,48 +37,30 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [conversationCount, setConversationCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load conversation count when user is authenticated
+  // Load existing conversation when user is authenticated
   useEffect(() => {
-    const loadConversationCount = async () => {
+    const loadUserConversation = async () => {
       if (isAuthenticated && user) {
         try {
-          const conversations = await getConversations();
-          const actualCount = Array.isArray(conversations) ? conversations.length : 0;
-          console.log('Loaded conversations:', conversations, 'Count:', actualCount);
-          setConversationCount(actualCount);
+          const conversation = await getUserConversation();
+          if (conversation) {
+            setConversationId(conversation.id);
+            const messagesWithDates = conversation.messages.map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }));
+            setMessages(messagesWithDates);
+          }
         } catch (error) {
-          console.error('Error loading conversation count:', error);
-          setConversationCount(0);
+          console.error('Error loading conversation:', error);
         }
       }
     };
 
-    loadConversationCount();
+    loadUserConversation();
   }, [isAuthenticated, user]);
-
-  // Load messages from localStorage when user is authenticated
-  useEffect(() => {
-    if (isAuthenticated && user && !conversationId) {
-      const userStorageKey = `${STORAGE_KEY}_${user.id}`;
-      const savedMessages = localStorage.getItem(userStorageKey);
-      if (savedMessages) {
-        try {
-          const parsedMessages = JSON.parse(savedMessages);
-          // Convert timestamp strings back to Date objects
-          const messagesWithDates = parsedMessages.map((msg: any) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp)
-          }));
-          setMessages(messagesWithDates);
-        } catch (error) {
-          console.error('Error loading saved messages:', error);
-        }
-      }
-    }
-  }, [isAuthenticated, user, conversationId]);
 
   // Save messages to localStorage and database when messages change and user is authenticated
   useEffect(() => {
@@ -102,33 +82,20 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
         try {
           if (conversationId) {
             await updateConversation(conversationId, messages);
-          } else if (conversationCount < 3) {
-            // Only create new conversation if under limit
+          } else {
             try {
               const conversation = await saveConversation(messages);
               setConversationId(conversation.id);
-              // Increment the local count immediately
-              setConversationCount(prev => prev + 1);
             } catch (error: any) {
               console.error('Error saving conversation:', error);
-              if (error.message?.includes('User cannot have more than 3 conversations')) {
-                toast({
-                  title: "Unterhaltungslimit erreicht",
-                  description: "Sie können maximal 3 Unterhaltungen haben. Bitte löschen Sie eine bestehende Unterhaltung, um eine neue zu erstellen.",
-                  variant: "destructive",
-                });
-              }
             }
-          } else {
-            // If at limit, don't try to save
-            console.warn('Conversation limit reached, not saving new conversation');
           }
         } catch (error: any) {
           console.error('Error saving conversation to database:', error);
           if (error.message?.includes('Conversation cannot have more than 50 messages')) {
             toast({
               title: "Nachrichtenlimit erreicht",
-              description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht. Bitte starten Sie eine neue Unterhaltung.",
+              description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht.",
               variant: "destructive",
             });
           }
@@ -137,7 +104,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
 
       saveToDatabase();
     }
-  }, [messages, isAuthenticated, user, conversationId, conversationCount, toast]);
+  }, [messages, isAuthenticated, user, conversationId, toast]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -164,32 +131,6 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     return userMessages.every(msg => countWords(msg.content) > 50);
   };
 
-  const handleConversationChange = async (newConversationId: string | null, newMessages: Message[]) => {
-    setConversationId(newConversationId);
-    setMessages(newMessages);
-    
-    // Update localStorage
-    if (isAuthenticated && user) {
-      const userStorageKey = `${STORAGE_KEY}_${user.id}`;
-      localStorage.setItem(userStorageKey, JSON.stringify(newMessages));
-    }
-
-    // Refresh conversation count from database to ensure accuracy
-    if (isAuthenticated && user) {
-      try {
-        const conversations = await getConversations();
-        const actualCount = Array.isArray(conversations) ? conversations.length : 0;
-        setConversationCount(actualCount);
-      } catch (error) {
-        console.error('Error refreshing conversation count:', error);
-      }
-    }
-  };
-
-  const handleConversationCountChange = (count: number) => {
-    setConversationCount(count);
-  };
-
   const handleSend = async (messageText?: string) => {
     const textToSend = messageText || input;
     if (!textToSend.trim() || isLoading) return;
@@ -198,17 +139,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     if (messages.length >= 50) {
       toast({
         title: "Nachrichtenlimit erreicht",
-        description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht. Bitte starten Sie eine neue Unterhaltung.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check conversation limit for new conversations
-    if (!conversationId && isAuthenticated && conversationCount >= 3) {
-      toast({
-        title: "Unterhaltungslimit erreicht",
-        description: "Sie können maximal 3 Unterhaltungen haben. Bitte wählen Sie eine bestehende Unterhaltung aus oder löschen Sie eine, um eine neue zu erstellen.",
+        description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht.",
         variant: "destructive",
       });
       return;
@@ -271,14 +202,12 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
 
   return (
     <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
-      {/* Conversation Manager Header */}
-      <ConversationManager
-        currentConversationId={conversationId}
-        onConversationChange={handleConversationChange}
-        currentMessages={messages}
-        conversationCount={conversationCount}
-        onConversationCountChange={handleConversationCountChange}
-      />
+      {/* Header */}
+      <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30">
+        <div className="flex items-center space-x-2">
+          <h2 className="text-sm font-medium">KI-Berater Chat</h2>
+        </div>
+      </div>
 
       {/* Messages */}
       <div className="flex-1 min-h-0">
@@ -287,12 +216,12 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             {/* Show authentication status */}
             {!isAuthenticated && (
               <div className="bg-muted/50 border border-muted p-3 rounded-lg text-center text-sm text-muted-foreground">
-                Melden Sie sich an, um Ihre Chat-Unterhaltungen zu speichern und über alle Fenster hinweg zu synchronisieren.
+                Melden Sie sich an, um Ihre Chat-Unterhaltung zu speichern und über alle Fenster hinweg zu synchronisieren.
               </div>
             )}
             {isAuthenticated && user && (
               <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg text-center text-sm text-primary">
-                Chat wird für {user.email} gespeichert und synchronisiert. ({conversationCount}/3 Unterhaltungen, {messages.length}/50 Nachrichten in aktueller Unterhaltung)
+                Chat wird für {user.email} gespeichert und synchronisiert. ({messages.length}/50 Nachrichten)
               </div>
             )}
             

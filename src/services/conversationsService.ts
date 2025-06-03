@@ -11,12 +11,33 @@ export interface ChatConversation {
   updated_at: string;
 }
 
+export const getUserConversation = async () => {
+  const { data, error } = await supabase
+    .from('chat_conversations')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) {
+    console.error('Database error when getting user conversation:', error);
+    throw error;
+  }
+
+  return data && data.length > 0 ? data[0] : null;
+};
+
 export const saveConversation = async (messages: any[], title?: string) => {
+  // Check if user already has a conversation
+  const existingConversation = await getUserConversation();
+  if (existingConversation) {
+    // Update existing conversation instead of creating new one
+    return await updateConversation(existingConversation.id, messages);
+  }
+
   // Generate title if not provided and we have enough content
   let conversationTitle = title;
   if (!conversationTitle && messages.length > 1) {
     try {
-      // Only try to generate title if we have user messages
       const userMessages = messages.filter(msg => msg.sender === "user");
       if (userMessages.length > 0) {
         conversationTitle = await chatService.generateConversationTitle(messages);
@@ -24,16 +45,14 @@ export const saveConversation = async (messages: any[], title?: string) => {
       }
     } catch (error) {
       console.error('Error generating title:', error);
-      // Use a more descriptive fallback title
       const userMessages = messages.filter(msg => msg.sender === "user");
       if (userMessages.length > 0) {
-        // Create title from first user message (truncated)
         const firstUserMessage = userMessages[0].content;
         conversationTitle = firstUserMessage.length > 50 
           ? firstUserMessage.substring(0, 47) + "..." 
           : firstUserMessage;
       } else {
-        conversationTitle = 'Neue Unterhaltung';
+        conversationTitle = 'Chat mit KI-Berater';
       }
     }
   }
@@ -43,7 +62,7 @@ export const saveConversation = async (messages: any[], title?: string) => {
     .insert({
       user_id: (await supabase.auth.getUser()).data.user?.id,
       messages,
-      title: conversationTitle || 'Neue Unterhaltung',
+      title: conversationTitle || 'Chat mit KI-Berater',
     })
     .select();
 
@@ -79,20 +98,6 @@ export const updateConversation = async (conversationId: string, messages: any[]
   }
 
   return data[0];
-};
-
-export const getConversations = async () => {
-  const { data, error } = await supabase
-    .from('chat_conversations')
-    .select('*')
-    .order('updated_at', { ascending: false });
-
-  if (error) {
-    console.error('Database error when getting conversations:', error);
-    throw error;
-  }
-
-  return data || [];
 };
 
 export const deleteConversation = async (conversationId: string) => {
