@@ -5,7 +5,6 @@ import { saveConversation, updateConversation, getUserConversation } from "@/ser
 import { useToast } from "@/hooks/use-toast";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
-import { OfferRequestButton } from "./OfferRequestButton";
 
 interface Message {
   id: string;
@@ -200,21 +199,6 @@ export const ChatInterface = ({
     }
   };
 
-  const handleCreateOffer = async () => {
-    if (offersGenerated >= MAX_OFFERS_PER_CHAT) {
-      toast({
-        title: "Angebotslimit erreicht",
-        description: `Sie können maximal ${MAX_OFFERS_PER_CHAT} Angebote pro Unterhaltung erstellen. Starten Sie eine neue Unterhaltung für weitere Angebote.`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const offerRequest = "Basierend auf unserer Unterhaltung, erstellen Sie mir bitte ein detailliertes Angebot mit allen besprochenen Leistungen und Preisen.";
-    await handleSend(offerRequest);
-  };
-
-  const isOfferCreationEnabled = canCreateOffer() && !isLoading && messages.length < 50 && offersGenerated < MAX_OFFERS_PER_CHAT;
   const isInputDisabled = messages.length >= 50;
   const inputPlaceholder = messages.length >= 50 
     ? "Nachrichtenlimit erreicht..." 
@@ -225,17 +209,7 @@ export const ChatInterface = ({
       <MessageList messages={messages} isLoading={isLoading} />
 
       {/* Input Section */}
-      <div className="border-t border-border p-4 space-y-3 flex-shrink-0">
-        <OfferRequestButton 
-          onRequestOffer={handleCreateOffer}
-          isEnabled={isOfferCreationEnabled}
-          isLoading={isLoading}
-          messageCount={messages.length}
-          canCreateOffer={canCreateOffer()}
-          offersGenerated={offersGenerated}
-          maxOffers={MAX_OFFERS_PER_CHAT}
-        />
-        
+      <div className="border-t border-border p-4 flex-shrink-0">
         <MessageInput 
           onSend={handleSend}
           isLoading={isLoading}
