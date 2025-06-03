@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface SavedOffer {
@@ -15,10 +14,11 @@ export interface SavedOffer {
 const cleanupExpiredOffers = async () => {
   try {
     // Delete offers where validUntil date has passed
+    // Use proper JSON path syntax for Supabase
     const { error } = await supabase
       .from('saved_offers')
       .delete()
-      .lt('offer_data->validUntil', new Date().toISOString());
+      .lt('offer_data->>validUntil', new Date().toISOString());
 
     if (error) {
       console.error('Error cleaning up expired offers:', error);
