@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface OfferContextType {
   hasGeneratedOffer: boolean;
@@ -23,8 +23,27 @@ interface OfferProviderProps {
 }
 
 export const OfferProvider = ({ children }: OfferProviderProps) => {
-  const [hasGeneratedOffer, setHasGeneratedOffer] = useState(false);
-  const [currentOffer, setCurrentOffer] = useState(null);
+  const [hasGeneratedOffer, setHasGeneratedOffer] = useState(() => {
+    // Initialize from localStorage
+    const stored = localStorage.getItem('hasGeneratedOffer');
+    return stored ? JSON.parse(stored) : false;
+  });
+  
+  const [currentOffer, setCurrentOffer] = useState(() => {
+    // Initialize from localStorage
+    const stored = localStorage.getItem('currentOffer');
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  // Persist hasGeneratedOffer to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('hasGeneratedOffer', JSON.stringify(hasGeneratedOffer));
+  }, [hasGeneratedOffer]);
+
+  // Persist currentOffer to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('currentOffer', JSON.stringify(currentOffer));
+  }, [currentOffer]);
 
   const value = {
     hasGeneratedOffer,
