@@ -7,13 +7,14 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { useOffer } from "@/contexts/OfferContext";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { Offer } from "@/types/offer";
 
 const Index = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast } = useToast();
   const { currentOffer, setCurrentOffer, setHasGeneratedOffer } = useOffer();
 
-  const handleOfferGenerated = (offer: any) => {
+  const handleOfferGenerated = (offer: Offer) => {
     setCurrentOffer(offer);
     setHasGeneratedOffer(true);
     toast({
@@ -31,7 +32,6 @@ const Index = () => {
         
         <main className="flex-1 overflow-hidden p-4">
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            {/* Chat Interface Panel */}
             <ResizablePanel defaultSize={50} minSize={30} className="flex flex-col">
               <div className="h-full overflow-hidden">
                 <ChatInterface onOfferGenerated={handleOfferGenerated} />
@@ -40,7 +40,6 @@ const Index = () => {
 
             <ResizableHandle withHandle />
 
-            {/* Offer Display Panel */}
             <ResizablePanel defaultSize={50} minSize={30} className="flex flex-col">
               <div className="h-full overflow-hidden">
                 <OfferDisplay offer={currentOffer} />
