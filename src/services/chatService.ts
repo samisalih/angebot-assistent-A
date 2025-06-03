@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // This service will handle the AI chat functionality using endpoints from Supabase
@@ -10,7 +11,7 @@ interface ChatResponse {
 interface Message {
   id: string;
   content: string;
-  sender: "user" | "assistant";
+  sender: "user" | "ai";
   timestamp: Date;
 }
 
