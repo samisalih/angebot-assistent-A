@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,9 +47,13 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       if (isAuthenticated && user) {
         try {
           const conversations = await getConversations();
-          setConversationCount(conversations?.length || 0);
+          // Make sure we're getting the actual count of conversations
+          const actualCount = Array.isArray(conversations) ? conversations.length : 0;
+          console.log('Loaded conversations:', conversations, 'Count:', actualCount);
+          setConversationCount(actualCount);
         } catch (error) {
           console.error('Error loading conversation count:', error);
+          setConversationCount(0);
         }
       }
     };
@@ -104,6 +107,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             try {
               const conversation = await saveConversation(messages, 'Chat Conversation');
               setConversationId(conversation.id);
+              // Increment the local count immediately
               setConversationCount(prev => prev + 1);
             } catch (error: any) {
               if (error.message?.includes('User cannot have more than 3 conversations')) {
@@ -161,7 +165,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
     return userMessages.every(msg => countWords(msg.content) > 50);
   };
 
-  const handleConversationChange = (newConversationId: string | null, newMessages: Message[]) => {
+  const handleConversationChange = async (newConversationId: string | null, newMessages: Message[]) => {
     setConversationId(newConversationId);
     setMessages(newMessages);
     
@@ -171,11 +175,15 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       localStorage.setItem(userStorageKey, JSON.stringify(newMessages));
     }
 
-    // Update conversation count
+    // Refresh conversation count from database to ensure accuracy
     if (isAuthenticated && user) {
-      getConversations().then(conversations => {
-        setConversationCount(conversations?.length || 0);
-      });
+      try {
+        const conversations = await getConversations();
+        const actualCount = Array.isArray(conversations) ? conversations.length : 0;
+        setConversationCount(actualCount);
+      } catch (error) {
+        console.error('Error refreshing conversation count:', error);
+      }
     }
   };
 
@@ -279,7 +287,7 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
             )}
             {isAuthenticated && user && (
               <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg text-center text-sm text-primary">
-                Chat wird für {user.email} gespeichert und synchronisiert. ({conversationCount}/3 Unterhaltungen, {messages.length}/50 Nachrichten)
+                Chat wird für {user.email} gespeichert und synchronisiert. ({conversationCount}/3 Unterhaltungen, {messages.length}/50 Nachrichten in aktueller Unterhaltung)
               </div>
             )}
             
