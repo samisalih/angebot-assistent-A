@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +48,6 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
       if (isAuthenticated && user) {
         try {
           const conversations = await getConversations();
-          // Make sure we're getting the actual count of conversations
           const actualCount = Array.isArray(conversations) ? conversations.length : 0;
           console.log('Loaded conversations:', conversations, 'Count:', actualCount);
           setConversationCount(actualCount);
@@ -105,19 +105,18 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
           } else if (conversationCount < 3) {
             // Only create new conversation if under limit
             try {
-              const conversation = await saveConversation(messages, 'Chat Conversation');
+              const conversation = await saveConversation(messages);
               setConversationId(conversation.id);
               // Increment the local count immediately
               setConversationCount(prev => prev + 1);
             } catch (error: any) {
+              console.error('Error saving conversation:', error);
               if (error.message?.includes('User cannot have more than 3 conversations')) {
                 toast({
                   title: "Unterhaltungslimit erreicht",
                   description: "Sie können maximal 3 Unterhaltungen haben. Bitte löschen Sie eine bestehende Unterhaltung, um eine neue zu erstellen.",
                   variant: "destructive",
                 });
-              } else {
-                throw error;
               }
             }
           } else {
@@ -185,6 +184,10 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
         console.error('Error refreshing conversation count:', error);
       }
     }
+  };
+
+  const handleConversationCountChange = (count: number) => {
+    setConversationCount(count);
   };
 
   const handleSend = async (messageText?: string) => {
@@ -273,6 +276,8 @@ export const ChatInterface = ({ onOfferGenerated }: ChatInterfaceProps) => {
         currentConversationId={conversationId}
         onConversationChange={handleConversationChange}
         currentMessages={messages}
+        conversationCount={conversationCount}
+        onConversationCountChange={handleConversationCountChange}
       />
 
       {/* Messages */}

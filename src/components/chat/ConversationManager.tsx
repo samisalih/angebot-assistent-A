@@ -23,12 +23,16 @@ interface ConversationManagerProps {
   currentConversationId: string | null;
   onConversationChange: (conversationId: string | null, messages: Message[]) => void;
   currentMessages: Message[];
+  conversationCount: number;
+  onConversationCountChange: (count: number) => void;
 }
 
 export const ConversationManager = ({
   currentConversationId,
   onConversationChange,
   currentMessages,
+  conversationCount,
+  onConversationCountChange,
 }: ConversationManagerProps) => {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -40,9 +44,14 @@ export const ConversationManager = ({
     
     try {
       const data = await getConversations();
-      setConversations(data || []);
+      const conversationsArray = data || [];
+      setConversations(conversationsArray);
+      // Update the conversation count in parent component
+      onConversationCountChange(conversationsArray.length);
     } catch (error) {
       console.error('Error loading conversations:', error);
+      setConversations([]);
+      onConversationCountChange(0);
     }
   };
 
@@ -51,7 +60,7 @@ export const ConversationManager = ({
   }, [isAuthenticated, user]);
 
   const handleNewConversation = async () => {
-    if (conversations.length >= 3) {
+    if (conversationCount >= 3) {
       toast({
         title: "Limit erreicht",
         description: "Sie können maximal 3 Unterhaltungen haben. Löschen Sie eine bestehende Unterhaltung, um eine neue zu erstellen.",
@@ -96,6 +105,8 @@ export const ConversationManager = ({
     
     try {
       await deleteConversation(conversationId);
+      
+      // Reload conversations and update count
       await loadConversations();
       
       // If we deleted the current conversation, start a new one
@@ -135,7 +146,7 @@ export const ConversationManager = ({
         <MessageSquare className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">{getCurrentConversationTitle()}</span>
         <span className="text-xs text-muted-foreground">
-          ({conversations.length}/3)
+          ({conversationCount}/3)
         </span>
       </div>
       
@@ -184,8 +195,8 @@ export const ConversationManager = ({
           variant="ghost"
           size="sm"
           onClick={handleNewConversation}
-          disabled={conversations.length >= 3}
-          title={conversations.length >= 3 ? "Maximal 3 Unterhaltungen erlaubt" : "Neue Unterhaltung"}
+          disabled={conversationCount >= 3}
+          title={conversationCount >= 3 ? "Maximal 3 Unterhaltungen erlaubt" : "Neue Unterhaltung"}
         >
           <Plus className="h-4 w-4" />
         </Button>

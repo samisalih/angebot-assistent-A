@@ -12,14 +12,29 @@ export interface ChatConversation {
 }
 
 export const saveConversation = async (messages: any[], title?: string) => {
-  // Generate title if not provided
+  // Generate title if not provided and we have enough content
   let conversationTitle = title;
   if (!conversationTitle && messages.length > 1) {
     try {
-      conversationTitle = await chatService.generateConversationTitle(messages);
+      // Only try to generate title if we have user messages
+      const userMessages = messages.filter(msg => msg.sender === "user");
+      if (userMessages.length > 0) {
+        conversationTitle = await chatService.generateConversationTitle(messages);
+        console.log('Generated conversation title:', conversationTitle);
+      }
     } catch (error) {
       console.error('Error generating title:', error);
-      conversationTitle = 'Chat Conversation';
+      // Use a more descriptive fallback title
+      const userMessages = messages.filter(msg => msg.sender === "user");
+      if (userMessages.length > 0) {
+        // Create title from first user message (truncated)
+        const firstUserMessage = userMessages[0].content;
+        conversationTitle = firstUserMessage.length > 50 
+          ? firstUserMessage.substring(0, 47) + "..." 
+          : firstUserMessage;
+      } else {
+        conversationTitle = 'Neue Unterhaltung';
+      }
     }
   }
 
@@ -28,7 +43,7 @@ export const saveConversation = async (messages: any[], title?: string) => {
     .insert({
       user_id: (await supabase.auth.getUser()).data.user?.id,
       messages,
-      title: conversationTitle || 'Chat Conversation',
+      title: conversationTitle || 'Neue Unterhaltung',
     })
     .select();
 
