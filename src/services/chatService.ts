@@ -10,7 +10,7 @@ interface ChatResponse {
 interface Message {
   id: string;
   content: string;
-  sender: "user" | "assistant";
+  sender: "user" | "ai";
   timestamp: Date;
 }
 
@@ -142,10 +142,18 @@ class ChatService {
 
       console.log('Generating conversation title via Edge Function');
       
+      // Convert messages to the format expected by the API (with string timestamps)
+      const contextForApi = messages.slice(-5).map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.timestamp.toISOString()
+      }));
+      
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: {
           message: `Erstellen Sie einen kurzen, prägnanten Titel (maximal 5 Wörter) für eine Unterhaltung basierend auf diesem Inhalt: "${userMessages}". Antworten Sie nur mit dem Titel, keine zusätzlichen Erklärungen.`,
-          context: [],
+          context: contextForApi,
           provider: activeService.provider,
           config: {
             ...activeService.config,
@@ -196,11 +204,19 @@ class ChatService {
       // Get knowledge base content
       const knowledgeBase = await this.getKnowledgeBase();
       
+      // Convert messages to the format expected by the API (with string timestamps)
+      const contextForApi = context.slice(-5).map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.timestamp.toISOString()
+      }));
+      
       // Call the AI service via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: {
           message,
-          context: context.slice(-5), // Send last 5 messages for context
+          context: contextForApi,
           provider: activeService.provider,
           config: {
             ...activeService.config,

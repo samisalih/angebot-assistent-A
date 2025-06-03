@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -83,14 +82,19 @@ export const ChatInterface = ({
         });
       }
 
-      // Save to database
+      // Save to database - convert timestamps to strings for the API
       const saveToDatabase = async () => {
         try {
+          const messagesForApi = messages.map(msg => ({
+            ...msg,
+            timestamp: msg.timestamp.toISOString()
+          }));
+          
           if (conversationId) {
-            await updateConversation(conversationId, messages);
+            await updateConversation(conversationId, messagesForApi);
           } else {
             try {
-              const conversation = await saveConversation(messages);
+              const conversation = await saveConversation(messagesForApi);
               setConversationId(conversation.id);
             } catch (error: any) {
               console.error('Error saving conversation:', error);
@@ -206,10 +210,6 @@ export const ChatInterface = ({
       <div className="flex-1 min-h-0">
         <ScrollArea className="h-full">
           <div className="p-4 space-y-4">
-            {/* Show authentication status */}
-            {!isAuthenticated && <div className="bg-muted/50 border border-muted p-3 rounded-lg text-center text-sm text-muted-foreground">
-                Melden Sie sich an, um Ihre Chat-Unterhaltung zu speichern und über alle Fenster hinweg zu synchronisieren.
-              </div>}
             
             {messages.map(message => <ChatMessage key={message.id} message={message} />)}
             {isLoading && <div className="flex items-center space-x-2 text-muted-foreground">
