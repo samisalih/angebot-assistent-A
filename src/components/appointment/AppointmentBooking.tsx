@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { TimeSlotGrid } from "./TimeSlotGrid";
+import { OfferSelector } from "./OfferSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { saveAppointment } from "@/services/appointmentsService";
@@ -15,17 +16,33 @@ import { saveAppointment } from "@/services/appointmentsService";
 export const AppointmentBooking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
+  const [selectedOfferData, setSelectedOfferData] = useState<any>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [isBooking, setIsBooking] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
+  const handleOfferSelect = (offerId: string | null, offerData: any) => {
+    setSelectedOfferId(offerId);
+    setSelectedOfferData(offerData);
+  };
+
   const handleBookAppointment = async () => {
     if (!selectedDate || !selectedTime) {
       toast({
         title: "Bitte wählen Sie Datum und Uhrzeit",
         description: "Sowohl ein Datum als auch eine Uhrzeit müssen ausgewählt werden.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedOfferId) {
+      toast({
+        title: "Bitte wählen Sie ein Angebot",
+        description: "Ein Angebot muss ausgewählt werden, um einen Termin zu buchen.",
         variant: "destructive",
       });
       return;
@@ -43,12 +60,14 @@ export const AppointmentBooking = () => {
     setIsBooking(true);
 
     try {
-      // Save appointment to database
+      // Save appointment to database with offer reference
       await saveAppointment({
         customerName,
         customerEmail,
         appointmentDate: selectedDate,
         appointmentTime: selectedTime,
+        offerId: selectedOfferId,
+        notes: `Angebot: ${selectedOfferData?.title || 'Unbekannt'} (${selectedOfferData?.totalPrice?.toLocaleString("de-DE", { style: "currency", currency: "EUR" }) || 'N/A'})`
       });
 
       // Send appointment confirmation email
@@ -63,6 +82,8 @@ export const AppointmentBooking = () => {
             day: 'numeric'
           }),
           appointmentTime: selectedTime,
+          offerTitle: selectedOfferData?.title || 'Unbekannt',
+          offerPrice: selectedOfferData?.totalPrice?.toLocaleString("de-DE", { style: "currency", currency: "EUR" }) || 'N/A',
           companyName: "Digitalwert – Agentur für digitale Wertschöpfung",
           companyAddress: "Alaunstraße 9, 01099 Dresden",
           companyPhone: "+49 351 456789",
@@ -87,6 +108,8 @@ export const AppointmentBooking = () => {
 
       // Reset form
       setSelectedTime(null);
+      setSelectedOfferId(null);
+      setSelectedOfferData(null);
       setCustomerName("");
       setCustomerEmail("");
 
@@ -107,7 +130,7 @@ export const AppointmentBooking = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Termin vereinbaren</h1>
         <p className="text-muted-foreground mt-2">
-          Wählen Sie ein Datum und eine Uhrzeit für Ihren Beratungstermin.
+          Wählen Sie ein Angebot, Datum und eine Uhrzeit für Ihren Beratungstermin.
         </p>
       </div>
 
@@ -137,7 +160,7 @@ export const AppointmentBooking = () => {
           <Card className="h-full">
             <CardHeader>
               <CardTitle>
-                Uhrzeit wählen
+                Termindetails
                 {selectedDate && (
                   <span className="text-sm font-normal text-muted-foreground ml-2">
                     für {selectedDate.toLocaleDateString("de-DE")}
@@ -145,18 +168,27 @@ export const AppointmentBooking = () => {
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
-              {selectedDate ? (
+            <CardContent className="flex-1 flex flex-col space-y-4">
+              {/* Offer Selection */}
+              <OfferSelector
+                selectedOfferId={selectedOfferId}
+                onOfferSelect={handleOfferSelect}
+              />
+
+              {selectedDate && selectedOfferId ? (
                 <>
-                  <TimeSlotGrid
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTime}
-                    onTimeSelect={setSelectedTime}
-                  />
+                  <div>
+                    <Label className="text-base font-medium">Uhrzeit wählen</Label>
+                    <TimeSlotGrid
+                      selectedDate={selectedDate}
+                      selectedTime={selectedTime}
+                      onTimeSelect={setSelectedTime}
+                    />
+                  </div>
                   
                   {/* Customer Information Form */}
                   {selectedTime && (
-                    <div className="mt-4 pt-4 border-t space-y-4">
+                    <div className="pt-4 border-t space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="customerName">Name *</Label>
@@ -181,7 +213,7 @@ export const AppointmentBooking = () => {
                       
                       <Button 
                         onClick={handleBookAppointment}
-                        disabled={!selectedTime || !customerName || !customerEmail || isBooking}
+                        disabled={!selectedTime || !customerName || !customerEmail || !selectedOfferId || isBooking}
                         className="w-full"
                       >
                         {isBooking ? "Wird gebucht..." : `Termin buchen (${selectedTime})`}
@@ -191,8 +223,8 @@ export const AppointmentBooking = () => {
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center">
-                  <p className="text-muted-foreground">
-                    Bitte wählen Sie zuerst ein Datum aus.
+                  <p className="text-muted-foreground text-center">
+                    {!selectedOfferId ? "Bitte wählen Sie zuerst ein Angebot aus." : "Bitte wählen Sie ein Datum aus."}
                   </p>
                 </div>
               )}

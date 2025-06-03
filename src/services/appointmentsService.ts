@@ -10,6 +10,7 @@ export interface Appointment {
   appointment_time: string;
   status: string;
   notes: string | null;
+  offer_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +20,7 @@ export const saveAppointment = async (appointmentData: {
   customerEmail: string;
   appointmentDate: Date;
   appointmentTime: string;
+  offerId?: string;
   notes?: string;
 }) => {
   const { data, error } = await supabase
@@ -29,6 +31,7 @@ export const saveAppointment = async (appointmentData: {
       customer_email: appointmentData.customerEmail,
       appointment_date: appointmentData.appointmentDate.toISOString().split('T')[0],
       appointment_time: appointmentData.appointmentTime,
+      offer_id: appointmentData.offerId,
       notes: appointmentData.notes,
     })
     .select()
