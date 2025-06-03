@@ -221,10 +221,31 @@ class ChatService {
 
       console.log('AI response received:', data);
 
-      return {
-        message: data.message,
-        offer: data.offer
-      };
+      if (data && data.message) {
+        const offer = data.offer;
+        if (offer) {
+          let validUntilDate;
+          if (offer.validUntil) {
+            validUntilDate = new Date(offer.validUntil);
+          }
+
+          // Check if validUntilDate is invalid or in the past
+          if (!validUntilDate || isNaN(validUntilDate.getTime()) || validUntilDate < new Date()) {
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 14); // Set to 14 days in the future
+            offer.validUntil = futureDate.toISOString();
+          } else {
+            // Ensure it's an ISO string if it was a valid date object or string
+            offer.validUntil = validUntilDate.toISOString();
+          }
+        }
+        return {
+          message: data.message,
+          offer: offer
+        };
+      }
+
+      throw new Error('No response from AI service');
     } catch (error) {
       console.error('Error calling AI service:', error);
       // Fallback to mock response on error

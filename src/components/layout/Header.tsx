@@ -34,18 +34,23 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   return (
     <>
       <header className="bg-transparent">
-        <div className="container mx-auto px-4 lg:px-8">
+        <div className="mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            {/* Menu Button */}
+            {/* Logo and Menu Button */}
             <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onMenuClick}
-                className="lg:hidden"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
+              <div className="app-info flex items-center gap-2">
+                {/* Menu Button */}
+                  <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onMenuClick}
+                      className="lg:hidden"
+                    >
+                      <Menu className="h-5 w-5" />
+                  </Button>
+                <img src="/digitalwert-Logo-weiss.svg" alt="Digitalwert Logo" className="h-5" />
+                <h1 className="font-semibold">Virtueller Berater</h1>
+              </div>
             </div>
 
             {/* User Authentication Status */}

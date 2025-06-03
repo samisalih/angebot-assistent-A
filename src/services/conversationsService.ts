@@ -1,19 +1,34 @@
 import { supabase } from '@/integrations/supabase/client';
 import { chatService } from './chatService';
 
+export interface ChatMessage {
+  id?: string; // Optional, might not be present for new messages
+  sender: 'user' | 'ai';
+  content: string;
+  timestamp?: string; // Optional, depending on if you store it
+  // Add any other relevant fields for a message
+}
+
 export interface ChatConversation {
   id: string;
   user_id: string;
   title: string | null;
-  messages: any[];
+  messages: ChatMessage[];
   created_at: string;
   updated_at: string;
 }
 
-export const getUserConversation = async () => {
+export const getUserConversation = async (): Promise<ChatConversation | null> => {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    console.error('Error fetching user or no user for getUserConversation:', authError);
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('chat_conversations')
     .select('*')
+    .eq('user_id', user.id) // Ensure it's for the current user
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -22,16 +37,32 @@ export const getUserConversation = async () => {
     throw error;
   }
 
-  return data && data.length > 0 ? data[0] : null;
+  return data && data.length > 0 ? data[0] as unknown as ChatConversation : null;
 };
 
-// Keep the old function name for backward compatibility
-export const getConversations = async () => {
-  const conversation = await getUserConversation();
-  return conversation ? [conversation] : [];
+// Fetches all conversations for the authenticated user
+export const getConversations = async (): Promise<ChatConversation[]> => {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    console.error('Error fetching user or no user for getConversations:', authError);
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from('chat_conversations')
+    .select('*')
+    .eq('user_id', user.id) // Filter by the logged-in user's ID
+    .order('updated_at', { ascending: false }); // Order by most recently updated
+
+  if (error) {
+    console.error('Database error when getting conversations:', error);
+    throw error;
+  }
+
+  return (data as unknown as ChatConversation[]) || [];
 };
 
-export const saveConversation = async (messages: any[], title?: string) => {
+export const saveConversation = async (messages: ChatMessage[], title?: string) => {
   // Check if user already has a conversation
   const existingConversation = await getUserConversation();
   if (existingConversation) {
@@ -45,7 +76,7 @@ export const saveConversation = async (messages: any[], title?: string) => {
     try {
       const userMessages = messages.filter(msg => msg.sender === "user");
       if (userMessages.length > 0) {
-        conversationTitle = await chatService.generateConversationTitle(messages);
+        conversationTitle = await chatService.generateConversationTitle(messages as any);
         console.log('Generated conversation title:', conversationTitle);
       }
     } catch (error) {
@@ -64,11 +95,11 @@ export const saveConversation = async (messages: any[], title?: string) => {
 
   const { data, error } = await supabase
     .from('chat_conversations')
-    .insert({
+    .insert([{
       user_id: (await supabase.auth.getUser()).data.user?.id,
-      messages,
+      messages: messages as any, // Cast to any or Json
       title: conversationTitle || 'Chat mit KI-Berater',
-    })
+    }])
     .select();
 
   if (error) {
@@ -83,11 +114,11 @@ export const saveConversation = async (messages: any[], title?: string) => {
   return data[0];
 };
 
-export const updateConversation = async (conversationId: string, messages: any[]) => {
+export const updateConversation = async (conversationId: string, messages: ChatMessage[]) => {
   const { data, error } = await supabase
     .from('chat_conversations')
     .update({
-      messages,
+      messages: messages as any, // Cast to any or Json
       updated_at: new Date().toISOString(),
     })
     .eq('id', conversationId)

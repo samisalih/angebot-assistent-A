@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAppointments, deleteAppointment } from "@/services/appointmentsService";
 import { getSavedOffers, deleteSavedOffer } from "@/services/offersService";
-import { getUserConversation, deleteConversation } from "@/services/conversationsService";
+import { getConversations, deleteConversation, ChatConversation } from "@/services/conversationsService";
 import { useToast } from "@/hooks/use-toast";
 
 const Profile = () => {
@@ -30,9 +30,9 @@ const Profile = () => {
     enabled: isAuthenticated,
   });
 
-  const { data: conversation } = useQuery({
-    queryKey: ['conversation'],
-    queryFn: getUserConversation,
+  const { data: conversations } = useQuery<ChatConversation[], Error>({
+    queryKey: ['conversations'],
+    queryFn: getConversations,
     enabled: isAuthenticated,
   });
 
@@ -75,7 +75,7 @@ const Profile = () => {
   const handleDeleteConversation = async (conversationId: string) => {
     try {
       await deleteConversation(conversationId);
-      queryClient.invalidateQueries({ queryKey: ['conversation'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       toast({
         title: "Unterhaltung gelöscht",
         description: "Die Unterhaltung wurde erfolgreich gelöscht.",
@@ -211,28 +211,32 @@ const Profile = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageSquare className="h-5 w-5" />
-                    Unterhaltung ({conversation ? 1 : 0})
+                    Unterhaltungen ({Array.isArray(conversations) ? conversations.length : 0})
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {conversation ? (
-                    <div className="flex items-center justify-between p-2 border rounded">
-                      <div className="text-sm">
-                        <div className="font-medium">{conversation.title || 'Unterhaltung'}</div>
-                        <div className="text-muted-foreground">
-                          {new Date(conversation.updated_at).toLocaleDateString("de-DE")}
+                  {conversations && Array.isArray(conversations) && conversations.length > 0 ? (
+                    conversations.slice(0, 3).map((conv) => (
+                      <div key={conv.id} className="flex items-center justify-between p-2 border rounded">
+                        <div className="text-sm">
+                          <div className="font-medium">
+                            {conv.title || `Unterhaltung vom ${new Date(conv.created_at).toLocaleDateString("de-DE")}`}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {Array.isArray(conv.messages) ? conv.messages.length : 0} Nachrichten
+                          </div>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteConversation(conv.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteConversation(conversation.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    ))
                   ) : (
-                    <p className="text-muted-foreground text-sm">Keine Unterhaltung vorhanden</p>
+                    <p className="text-muted-foreground text-sm">Keine Unterhaltungen vorhanden</p>
                   )}
                 </CardContent>
               </Card>
