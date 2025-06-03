@@ -43,6 +43,15 @@ export const ChatInterface = ({
   const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Debug: Log messages whenever they change
+  useEffect(() => {
+    console.log('Messages updated:', messages);
+    console.log('Number of messages:', messages.length);
+    messages.forEach((msg, index) => {
+      console.log(`Message ${index + 1}: sender=${msg.sender}, content preview=${msg.content.substring(0, 50)}...`);
+    });
+  }, [messages]);
+
   // Load existing conversation when user is authenticated
   useEffect(() => {
     const loadUserConversation = async () => {
@@ -154,23 +163,32 @@ export const ChatInterface = ({
       });
       return;
     }
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       content: textToSend,
       sender: "user",
       timestamp: new Date()
     };
+    
+    console.log('Adding user message:', userMessage);
     setMessages(prev => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    
     try {
+      console.log('Calling chat service...');
       const response = await chatService.sendMessage(textToSend, messages);
+      console.log('Chat service response:', response);
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: response.message,
         sender: "ai",
         timestamp: new Date()
       };
+      
+      console.log('Adding AI message:', assistantMessage);
       setMessages(prev => [...prev, assistantMessage]);
 
       // Check if an offer was generated
@@ -185,6 +203,7 @@ export const ChatInterface = ({
         sender: "ai",
         timestamp: new Date()
       };
+      console.log('Adding error message:', errorMessage);
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
@@ -211,7 +230,10 @@ export const ChatInterface = ({
         <ScrollArea className="h-full">
           <div className="p-4 space-y-4">
             
-            {messages.map(message => <ChatMessage key={message.id} message={message} />)}
+            {messages.map(message => {
+              console.log('Rendering message:', message.id, message.sender);
+              return <ChatMessage key={message.id} message={message} />;
+            })}
             {isLoading && <div className="flex items-center space-x-2 text-muted-foreground">
                 <Bot className="h-4 w-4 animate-pulse" />
                 <span className="text-sm">Der Assistent tippt...</span>
