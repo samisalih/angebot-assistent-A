@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { chatService } from "@/services/chatService";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +19,7 @@ interface ChatInterfaceProps {
 }
 
 const STORAGE_KEY = 'chat_messages';
+const MAX_OFFERS_PER_CHAT = 3;
 
 export const ChatInterface = ({
   onOfferGenerated
@@ -34,6 +34,7 @@ export const ChatInterface = ({
   }]);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [offersGenerated, setOffersGenerated] = useState(0);
 
   // Load existing conversation when user is authenticated
   useEffect(() => {
@@ -164,7 +165,25 @@ export const ChatInterface = ({
 
       // Check if an offer was generated
       if (response.offer) {
+        if (offersGenerated >= MAX_OFFERS_PER_CHAT) {
+          toast({
+            title: "Angebotslimit erreicht",
+            description: `Sie können maximal ${MAX_OFFERS_PER_CHAT} Angebote pro Unterhaltung erstellen. Starten Sie eine neue Unterhaltung für weitere Angebote.`,
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        setOffersGenerated(prev => prev + 1);
         onOfferGenerated(response.offer);
+        
+        if (offersGenerated + 1 >= MAX_OFFERS_PER_CHAT) {
+          toast({
+            title: "Letztes Angebot erstellt",
+            description: "Sie haben das Maximum von 3 Angeboten pro Unterhaltung erreicht.",
+            variant: "default"
+          });
+        }
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -182,11 +201,20 @@ export const ChatInterface = ({
   };
 
   const handleCreateOffer = async () => {
+    if (offersGenerated >= MAX_OFFERS_PER_CHAT) {
+      toast({
+        title: "Angebotslimit erreicht",
+        description: `Sie können maximal ${MAX_OFFERS_PER_CHAT} Angebote pro Unterhaltung erstellen. Starten Sie eine neue Unterhaltung für weitere Angebote.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     const offerRequest = "Basierend auf unserer Unterhaltung, erstellen Sie mir bitte ein detailliertes Angebot mit allen besprochenen Leistungen und Preisen.";
     await handleSend(offerRequest);
   };
 
-  const isOfferCreationEnabled = canCreateOffer() && !isLoading && messages.length < 50;
+  const isOfferCreationEnabled = canCreateOffer() && !isLoading && messages.length < 50 && offersGenerated < MAX_OFFERS_PER_CHAT;
   const isInputDisabled = messages.length >= 50;
   const inputPlaceholder = messages.length >= 50 
     ? "Nachrichtenlimit erreicht..." 
@@ -204,6 +232,8 @@ export const ChatInterface = ({
           isLoading={isLoading}
           messageCount={messages.length}
           canCreateOffer={canCreateOffer()}
+          offersGenerated={offersGenerated}
+          maxOffers={MAX_OFFERS_PER_CHAT}
         />
         
         <MessageInput 
