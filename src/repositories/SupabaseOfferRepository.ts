@@ -23,7 +23,7 @@ export class SupabaseOfferRepository implements IOfferRepository {
     // Cast the response data to our SavedOffer type
     return {
       ...data,
-      offer_data: data.offer_data as Offer
+      offer_data: data.offer_data as unknown as Offer
     } as SavedOffer;
   }
 
@@ -43,7 +43,7 @@ export class SupabaseOfferRepository implements IOfferRepository {
     // Cast the response data to our SavedOffer type
     return (data || []).map(item => ({
       ...item,
-      offer_data: item.offer_data as Offer
+      offer_data: item.offer_data as unknown as Offer
     })) as SavedOffer[];
   }
 
