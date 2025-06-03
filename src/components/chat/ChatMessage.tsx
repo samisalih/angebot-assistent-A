@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 interface Message {
   id: string;
   content: string;
-  sender: "user" | "ai";
+  sender: "user" | "assistant";
   timestamp: Date;
 }
 
@@ -15,7 +15,7 @@ interface ChatMessageProps {
 }
 
 export const ChatMessage = ({ message }: ChatMessageProps) => {
-  const isAssistant = message.sender === "ai";
+  const isAssistant = message.sender === "assistant";
 
   return (
     <div

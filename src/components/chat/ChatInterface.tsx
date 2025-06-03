@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,20 +8,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { saveConversation, updateConversation, getUserConversation } from "@/services/conversationsService";
 import { useToast } from "@/hooks/use-toast";
-
 interface Message {
   id: string;
   content: string;
-  sender: "user" | "ai";
+  sender: "user" | "assistant";
   timestamp: Date;
 }
-
 interface ChatInterfaceProps {
   onOfferGenerated: (offer: any) => void;
 }
-
 const STORAGE_KEY = 'chat_messages';
-
 export const ChatInterface = ({
   onOfferGenerated
 }: ChatInterfaceProps) => {
@@ -36,7 +31,7 @@ export const ChatInterface = ({
   const [messages, setMessages] = useState<Message[]>([{
     id: "1",
     content: "Hallo! Ich bin Ihr KI-Berater. Erzählen Sie mir von Ihren Bedürfnissen und ich helfe Ihnen dabei, das perfekte Angebot zu erstellen. Womit kann ich Ihnen heute helfen?",
-    sender: "ai",
+    sender: "assistant",
     timestamp: new Date()
   }]);
   const [input, setInput] = useState("");
@@ -110,13 +105,11 @@ export const ChatInterface = ({
       saveToDatabase();
     }
   }, [messages, isAuthenticated, user, conversationId, toast]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth"
     });
   };
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -136,7 +129,6 @@ export const ChatInterface = ({
     // Check if all user messages have more than 50 words
     return userMessages.every(msg => countWords(msg.content) > 50);
   };
-
   const handleSend = async (messageText?: string) => {
     const textToSend = messageText || input;
     if (!textToSend.trim() || isLoading) return;
@@ -150,24 +142,21 @@ export const ChatInterface = ({
       });
       return;
     }
-
     const userMessage: Message = {
       id: Date.now().toString(),
       content: textToSend,
       sender: "user",
       timestamp: new Date()
     };
-
     setMessages(prev => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
-
     try {
       const response = await chatService.sendMessage(textToSend, messages);
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: response.message,
-        sender: "ai",
+        sender: "assistant",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, assistantMessage]);
@@ -181,7 +170,7 @@ export const ChatInterface = ({
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.",
-        sender: "ai",
+        sender: "assistant",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -189,21 +178,17 @@ export const ChatInterface = ({
       setIsLoading(false);
     }
   };
-
   const handleCreateOffer = async () => {
     const offerRequest = "Basierend auf unserer Unterhaltung, erstellen Sie mir bitte ein detailliertes Angebot mit allen besprochenen Leistungen und Preisen.";
     await handleSend(offerRequest);
   };
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
   const isOfferCreationEnabled = canCreateOffer() && !isLoading && messages.length < 50;
-
   return <div className="h-full flex flex-col bg-card shadow-lg rounded-lg border">
       {/* Messages */}
       <div className="flex-1 min-h-0">
