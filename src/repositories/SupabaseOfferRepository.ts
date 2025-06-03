@@ -9,7 +9,7 @@ export class SupabaseOfferRepository implements IOfferRepository {
       .from('saved_offers')
       .insert({
         user_id: (await supabase.auth.getUser()).data.user?.id,
-        offer_data: offer,
+        offer_data: offer as any, // Cast to any for JSON storage
         title: offer.title,
         total_price: offer.totalPrice,
       })
@@ -20,7 +20,11 @@ export class SupabaseOfferRepository implements IOfferRepository {
       throw error;
     }
 
-    return data;
+    // Cast the response data to our SavedOffer type
+    return {
+      ...data,
+      offer_data: data.offer_data as Offer
+    } as SavedOffer;
   }
 
   async getAll(): Promise<SavedOffer[]> {
@@ -36,7 +40,11 @@ export class SupabaseOfferRepository implements IOfferRepository {
       throw error;
     }
 
-    return data || [];
+    // Cast the response data to our SavedOffer type
+    return (data || []).map(item => ({
+      ...item,
+      offer_data: item.offer_data as Offer
+    })) as SavedOffer[];
   }
 
   async delete(offerId: string): Promise<void> {

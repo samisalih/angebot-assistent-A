@@ -18,7 +18,7 @@ export interface Offer {
 export interface SavedOffer {
   id: string;
   user_id: string;
-  offer_data: Offer;
+  offer_data: Offer; // This will be properly typed now
   title: string;
   total_price: number;
   created_at: string;
