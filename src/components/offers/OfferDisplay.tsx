@@ -9,7 +9,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthDialog } from "@/components/auth/AuthDialog";
 import { useNavigate } from "react-router-dom";
-
 interface Offer {
   id: string;
   title: string;
@@ -23,68 +22,65 @@ interface Offer {
   totalPrice: number;
   validUntil: Date | string;
 }
-
 interface OfferDisplayProps {
   offer: Offer | null;
 }
-
-export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
-  const { toast } = useToast();
-  const { user } = useAuth();
+export const OfferDisplay = ({
+  offer
+}: OfferDisplayProps) => {
+  const {
+    toast
+  } = useToast();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [savingOffer, setSavingOffer] = useState(false);
-
   const handleDownloadPDF = async () => {
     if (!offer) return;
-    
     try {
       await generateOfferPDF(offer);
       toast({
         title: "PDF erstellt",
-        description: "Ihr Angebot wurde erfolgreich als PDF heruntergeladen.",
+        description: "Ihr Angebot wurde erfolgreich als PDF heruntergeladen."
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({
         title: "Fehler beim PDF-Export",
         description: "Es gab ein Problem beim Erstellen der PDF-Datei.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleScheduleAppointment = () => {
     navigate('/appointment');
   };
-
   const handleSaveOffer = async () => {
     if (!offer) return;
-
     if (!user) {
       setAuthDialogOpen(true);
       return;
     }
-
     setSavingOffer(true);
     try {
       await saveOffer(offer);
       toast({
         title: "Angebot gespeichert",
-        description: "Das Angebot wurde erfolgreich in Ihrem Konto gespeichert.",
+        description: "Das Angebot wurde erfolgreich in Ihrem Konto gespeichert."
       });
     } catch (error) {
       console.error('Error saving offer:', error);
       toast({
         title: "Fehler beim Speichern",
         description: "Das Angebot konnte nicht gespeichert werden.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setSavingOffer(false);
     }
   };
-
   const handleAuthSuccess = () => {
     // After successful auth, automatically save the offer
     if (offer) {
@@ -93,11 +89,9 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
       }, 500);
     }
   };
-
   if (!offer) {
-    return (
-      <div className="h-full bg-card shadow-lg rounded-lg border flex items-center justify-center">
-        <div className="text-center text-muted-foreground p-6">
+    return <div className="h-full bg-card shadow-lg rounded-lg border flex items-center justify-center">
+        <div className="text-center text-muted-foreground p-6 px-[15px]">
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
             <Share2 className="h-8 w-8 text-muted-foreground" />
           </div>
@@ -107,17 +101,12 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
             personalisiertes Angebot zu erhalten.
           </p>
         </div>
-      </div>
-    );
+      </div>;
   }
 
   // Convert validUntil to Date if it's a string
-  const validUntilDate = typeof offer.validUntil === 'string' 
-    ? new Date(offer.validUntil) 
-    : offer.validUntil;
-
-  return (
-    <>
+  const validUntilDate = typeof offer.validUntil === 'string' ? new Date(offer.validUntil) : offer.validUntil;
+  return <>
       <div className="h-full bg-card shadow-lg rounded-lg border flex flex-col">
         <CardHeader className="bg-gradient-to-r from-muted to-accent/20 flex-shrink-0 rounded-t-lg">
           <CardTitle className="text-xl text-foreground">{offer.title}</CardTitle>
@@ -130,11 +119,7 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
               {/* Offer Items */}
               <div className="space-y-4">
                 <h4 className="font-semibold text-foreground">Leistungen:</h4>
-                {offer.items.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between items-start p-3 bg-muted rounded-lg"
-                  >
+                {offer.items.map((item, index) => <div key={index} className="flex justify-between items-start p-3 bg-muted rounded-lg">
                     <div className="flex-1">
                       <h5 className="font-medium text-foreground">{item.name}</h5>
                       <p className="text-sm text-muted-foreground">{item.description}</p>
@@ -145,13 +130,12 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
                     <div className="text-right">
                       <span className="font-semibold text-foreground">
                         {(item.price * item.quantity).toLocaleString("de-DE", {
-                          style: "currency",
-                          currency: "EUR",
-                        })}
+                      style: "currency",
+                      currency: "EUR"
+                    })}
                       </span>
                     </div>
-                  </div>
-                ))}
+                  </div>)}
               </div>
 
               {/* Total Price */}
@@ -162,9 +146,9 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
                   </span>
                   <span className="text-2xl font-bold text-accent">
                     {offer.totalPrice.toLocaleString("de-DE", {
-                      style: "currency",
-                      currency: "EUR",
-                    })}
+                    style: "currency",
+                    currency: "EUR"
+                  })}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -182,32 +166,18 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
               <Download className="h-4 w-4 mr-2" />
               PDF Download
             </Button>
-            <Button 
-              onClick={handleScheduleAppointment} 
-              variant="outline" 
-              className="w-full border-accent/50 text-accent hover:bg-accent/10"
-            >
+            <Button onClick={handleScheduleAppointment} variant="outline" className="w-full border-accent/50 text-accent hover:bg-accent/10">
               <Calendar className="h-4 w-4 mr-2" />
               Termin vereinbaren
             </Button>
           </div>
-          <Button 
-            onClick={handleSaveOffer}
-            disabled={savingOffer}
-            variant="outline"
-            className="w-full"
-          >
+          <Button onClick={handleSaveOffer} disabled={savingOffer} variant="outline" className="w-full">
             <Bookmark className="h-4 w-4 mr-2" />
             {savingOffer ? 'Speichern...' : 'Angebot speichern'}
           </Button>
         </div>
       </div>
 
-      <AuthDialog 
-        open={authDialogOpen} 
-        onOpenChange={setAuthDialogOpen}
-        onSuccess={handleAuthSuccess}
-      />
-    </>
-  );
+      <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} onSuccess={handleAuthSuccess} />
+    </>;
 };
