@@ -33,17 +33,16 @@ serve(async (req) => {
     console.log('API key name:', config.api_key_name);
     console.log('Message preview:', message.substring(0, 100) + '...');
 
-    // Get the API key from Supabase secrets
+    // Check if the requested provider has an available API key
+    console.log('=== API KEY VALIDATION ===');
     let apiKey = null;
     
-    console.log('=== API KEY DETECTION ===');
-    // First try to get from environment (Supabase secrets are loaded as env vars)
     if (config.api_key_name) {
       apiKey = Deno.env.get(config.api_key_name);
       console.log(`Looking for API key: ${config.api_key_name}, found: ${!!apiKey}`);
     }
     
-    // If still no API key, try some common fallbacks
+    // If no specific API key, try common fallbacks based on provider
     if (!apiKey) {
       console.log('No API key found with specified name, trying fallbacks...');
       if (provider === 'openai') {
@@ -58,11 +57,19 @@ serve(async (req) => {
       }
     }
     
+    // If still no API key for the requested provider, return an error indicating fallback to frontend
     if (!apiKey) {
-      console.error(`=== ERROR: NO API KEY ===`);
-      console.error(`No API key found for provider ${provider}. Checked: ${config.api_key_name}`);
-      console.error('Available env vars:', Object.keys(Deno.env.toObject()).filter(key => key.includes('API_KEY')));
-      throw new Error(`API key ${config.api_key_name || 'for ' + provider} not found. Please configure it in Supabase Secrets.`);
+      console.warn(`=== NO API KEY FOR PROVIDER ${provider.toUpperCase()} ===`);
+      console.warn(`No API key found for provider ${provider}. Available keys:`, Object.keys(Deno.env.toObject()).filter(key => key.includes('API_KEY')));
+      
+      return new Response(JSON.stringify({ 
+        error: `NO_API_KEY_${provider.toUpperCase()}`,
+        message: `Kein API-Schlüssel für ${provider} verfügbar. Das System wird auf Mock-Antworten zurückgreifen.`,
+        shouldUseMock: true
+      }), {
+        status: 200, // Return 200 so frontend can handle gracefully
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Log API key format for debugging (first and last 4 characters only)
@@ -147,9 +154,10 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({ 
       error: error.message,
-      message: "Entschuldigung, es gab einen Fehler bei der Verarbeitung Ihrer Anfrage. Bitte versuchen Sie es erneut."
+      message: "Entschuldigung, es gab einen Fehler bei der Verarbeitung Ihrer Anfrage. Das System wird auf Mock-Antworten zurückgreifen.",
+      shouldUseMock: true
     }), {
-      status: 500,
+      status: 200, // Return 200 so frontend can handle gracefully
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

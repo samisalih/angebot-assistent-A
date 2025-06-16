@@ -38,12 +38,11 @@ class ChatService {
   } | null> {
     try {
       console.log('=== GETTING ACTIVE AI SERVICE ===');
-      // Get the first available service configuration
+      // Get available services that have working API keys
       const { data: allServices, error: allError } = await supabase
         .from('ai_service_config')
         .select('*')
-        .order('service_name')
-        .limit(1);
+        .order('service_name');
 
       if (allError) {
         console.error('Error fetching AI services:', allError);
@@ -55,12 +54,21 @@ class ChatService {
         return null;
       }
 
-      const config = allServices[0];
-      console.log('Using service configuration:', config.service_name);
-      console.log('Service endpoint:', config.endpoint_url);
-      console.log('Service API key name:', config.api_key_name);
+      // Prefer OpenAI if available (since we know we have that key)
+      let preferredConfig = allServices.find(config => 
+        config.service_name.toLowerCase().includes('openai')
+      );
+
+      // If no OpenAI config, use the first one
+      if (!preferredConfig) {
+        preferredConfig = allServices[0];
+      }
+
+      console.log('Using service configuration:', preferredConfig.service_name);
+      console.log('Service endpoint:', preferredConfig.endpoint_url);
+      console.log('Service API key name:', preferredConfig.api_key_name);
       
-      return this.formatServiceConfig(config);
+      return this.formatServiceConfig(preferredConfig);
     } catch (error) {
       console.error('Error in getActiveService:', error);
       return null;
@@ -241,6 +249,13 @@ class ChatService {
       if (!data) {
         console.error('=== NO RESPONSE FROM AI SERVICE ===');
         console.log('Falling back to mock response due to no data');
+        return this.getMockResponse(message, context);
+      }
+
+      // Check if the response indicates we should use mock (no API key available)
+      if (data.shouldUseMock || data.error?.includes('NO_API_KEY')) {
+        console.warn('=== API KEY NOT AVAILABLE, USING MOCK ===');
+        console.warn('Edge function indicates API key not available:', data.error);
         return this.getMockResponse(message, context);
       }
 
