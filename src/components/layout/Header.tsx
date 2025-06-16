@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Menu, LogOut, User, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,7 @@ export const Header = ({ onMenuClick, onResetChat }: HeaderProps) => {
     localStorage.removeItem('currentOffer');
     localStorage.removeItem('hasGeneratedOffer');
     
-    // Call parent reset function if provided
+    // Call parent reset function to reset messages
     if (onResetChat) {
       onResetChat();
     }
