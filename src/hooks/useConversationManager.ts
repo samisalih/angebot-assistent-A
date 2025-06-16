@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Message } from '@/types/message';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserConversation, updateConversation, saveConversation } from '@/services/conversationsService';
+import { getUserConversation, updateConversation, saveConversation, deleteConversation } from '@/services/conversationsService';
 import { ConversationService } from '@/domain/ConversationService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -98,8 +98,20 @@ export const useConversationManager = () => {
     setMessages(prev => [...prev, message]);
   };
 
-  const resetConversation = () => {
+  const resetConversation = async () => {
     console.log('Resetting conversation to initial state');
+    
+    // Delete conversation from database if it exists
+    if (conversationId) {
+      try {
+        await deleteConversation(conversationId);
+        console.log('Deleted conversation from database:', conversationId);
+      } catch (error) {
+        console.error('Error deleting conversation from database:', error);
+      }
+    }
+    
+    // Reset local state
     setMessages([INITIAL_MESSAGE]);
     setConversationId(null);
     

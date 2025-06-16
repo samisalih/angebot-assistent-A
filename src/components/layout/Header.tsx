@@ -34,7 +34,7 @@ export const Header = ({ onMenuClick, onResetChat }: HeaderProps) => {
     navigate('/');
   };
 
-  const handleResetChat = () => {
+  const handleResetChat = async () => {
     // Reset offer context
     setCurrentOffer(null);
     setHasGeneratedOffer(false);
@@ -50,7 +50,7 @@ export const Header = ({ onMenuClick, onResetChat }: HeaderProps) => {
       localStorage.removeItem(userStorageKey);
     }
     
-    // Call parent reset function to reset messages
+    // Call parent reset function to trigger chat reset
     if (onResetChat) {
       onResetChat();
     }

@@ -25,8 +25,11 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
   useEffect(() => {
     if (resetKey && resetKey > 0) {
       console.log('Resetting chat container due to resetKey change:', resetKey);
-      resetConversation();
-      resetOfferCount();
+      const performReset = async () => {
+        await resetConversation();
+        resetOfferCount();
+      };
+      performReset();
     }
   }, [resetKey, resetConversation, resetOfferCount]);
 
