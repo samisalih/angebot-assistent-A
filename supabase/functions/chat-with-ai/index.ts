@@ -61,6 +61,11 @@ serve(async (req) => {
       throw new Error(`API key ${config.api_key_name || 'for ' + provider} not found. Please configure it in Supabase Secrets.`);
     }
 
+    // Log API key format for debugging (first and last 4 characters only)
+    if (apiKey.length > 8) {
+      console.log(`API key format: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
+    }
+
     console.log(`Successfully found API key for ${provider}`);
 
     // Enhanced system prompt for offer generation

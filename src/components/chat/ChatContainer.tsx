@@ -34,7 +34,9 @@ export const ChatContainer = ({ onOfferGenerated }: ChatContainerProps) => {
     setIsLoading(true);
     
     try {
+      console.log('Sending message to chat service:', messageText);
       const response = await chatService.sendMessage(messageText, messages);
+      console.log('Received response from chat service:', response);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -45,11 +47,19 @@ export const ChatContainer = ({ onOfferGenerated }: ChatContainerProps) => {
       
       addMessage(assistantMessage);
 
+      // Prüfe ob ein Angebot generiert wurde
       if (response.offer) {
-        if (incrementOfferCount()) {
+        console.log('Offer detected in response:', response.offer);
+        if (canCreateOffer) {
           const validatedOffer = OfferValidationService.ensureValidUntilDate(response.offer);
+          console.log('Calling onOfferGenerated with validated offer:', validatedOffer);
           onOfferGenerated(validatedOffer);
+          incrementOfferCount();
+        } else {
+          console.log('Cannot create offer - limit reached');
         }
+      } else {
+        console.log('No offer in response');
       }
     } catch (error) {
       console.error("Error sending message:", error);

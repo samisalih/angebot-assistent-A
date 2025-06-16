@@ -37,6 +37,7 @@ class ChatService {
     config: any;
   } | null> {
     try {
+      console.log('Getting active AI service configuration...');
       // Get the first available service configuration
       const { data: allServices, error: allError } = await supabase
         .from('ai_service_config')
@@ -44,13 +45,18 @@ class ChatService {
         .order('service_name')
         .limit(1);
 
-      if (allError || !allServices || allServices.length === 0) {
-        console.error('No AI services configured');
+      if (allError) {
+        console.error('Error fetching AI services:', allError);
+        return null;
+      }
+
+      if (!allServices || allServices.length === 0) {
+        console.log('No AI services configured');
         return null;
       }
 
       const config = allServices[0];
-      console.log('Using service (API key from Supabase secrets):', config.service_name);
+      console.log('Using service configuration:', config.service_name);
       return this.formatServiceConfig(config);
     } catch (error) {
       console.error('Error in getActiveService:', error);
@@ -177,10 +183,11 @@ class ChatService {
   }
 
   async sendMessage(message: string, context: Message[]): Promise<ChatResponse> {
+    console.log('ChatService: sendMessage called with:', { message: message.substring(0, 50) + '...', contextLength: context.length });
+    
     const activeService = await this.getActiveService();
     
     if (!activeService) {
-      // Fallback to mock response if no service is configured
       console.warn('No AI service configured, using mock response');
       return this.getMockResponse(message, context);
     }
@@ -215,14 +222,17 @@ class ChatService {
 
       if (error) {
         console.error('Edge Function error:', error);
-        throw error;
+        console.log('Falling back to mock response due to Edge Function error');
+        return this.getMockResponse(message, context);
       }
 
       if (!data) {
-        throw new Error('No response from AI service');
+        console.error('No response from AI service');
+        console.log('Falling back to mock response due to no data');
+        return this.getMockResponse(message, context);
       }
 
-      console.log('AI response received:', data);
+      console.log('AI response received successfully:', data);
 
       if (data && data.message) {
         const offer = data.offer;
@@ -248,10 +258,12 @@ class ChatService {
         };
       }
 
-      throw new Error('No response from AI service');
+      console.error('Invalid response format from AI service');
+      return this.getMockResponse(message, context);
     } catch (error) {
       console.error('Error calling AI service:', error);
       // Fallback to mock response on error
+      console.log('Falling back to mock response due to catch block');
       return this.getMockResponse(message, context);
     }
   }
@@ -294,18 +306,18 @@ class ChatService {
       };
 
       return {
-        message: "Perfekt! Basierend auf unserer Unterhaltung habe ich ein maßgeschneidertes Angebot für Sie erstellt. Sie finden alle Details im Angebots-Bereich rechts. Gerne können wir die Leistungen noch anpassen oder Sie können direkt einen Beratungstermin vereinbaren. (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
+        message: "Perfekt! Basierend auf unserer Unterhaltung habe ich ein maßgeschneidertes Angebot für Sie erstellt. Sie finden alle Details im Angebots-Bereich rechts. Gerne können wir die Leistungen noch anpassen oder Sie können direkt einen Beratungstermin vereinbaren. (HINWEIS: Dies ist eine Mock-Antwort, da der AI-Service einen Fehler hat)",
         offer: mockOffer,
       };
     }
 
     // Mock responses for different topics
     const responses = [
-      "Das verstehe ich. Können Sie mir mehr Details zu Ihren spezifischen Anforderungen geben? (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
-      "Interessant! Um Ihnen das beste Angebot erstellen zu können, benötige ich noch einige Informationen. Was sind Ihre wichtigsten Ziele? (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
-      "Vielen Dank für diese Informationen. Welches Budget haben Sie sich für dieses Projekt vorgestellt? (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
-      "Das klingt nach einem spannenden Projekt. Gibt es bestimmte Zeitrahmen oder Deadlines, die wir beachten sollten? (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
-      "Perfekt! Lassen Sie mich ein paar weitere Fragen stellen, um sicherzustellen, dass wir alle Ihre Bedürfnisse abdecken. (HINWEIS: Dies ist eine Mock-Antwort, da kein AI-Service konfiguriert ist)",
+      "Das verstehe ich. Können Sie mir mehr Details zu Ihren spezifischen Anforderungen geben? (HINWEIS: Dies ist eine Mock-Antwort, da der AI-Service einen Fehler hat)",
+      "Interessant! Um Ihnen das beste Angebot erstellen zu können, benötige ich noch einige Informationen. Was sind Ihre wichtigsten Ziele? (HINWEIS: Dies ist eine Mock-Antwort, da der AI-Service einen Fehler hat)",
+      "Vielen Dank für diese Informationen. Welches Budget haben Sie sich für dieses Projekt vorgestellt? (HINWEIS: Dies ist eine Mock-Antwort, da der AI-Service einen Fehler hat)",
+      "Das klingt nach einem spannenden Projekt. Gibt es bestimmte Zeitrahmen oder Deadlines, die wir beachten sollten? (HINWEIS: Dies ist eine Mock-Antwort, da der AI-Service einen Fehler hat)",
+      "Perfekt! Lassen Sie mich ein paar weitere Fragen stellen, um sicherzustellen, dass wir alle Ihre Bedürfnisse abdecken. (HINWEIS: Dies ist eine Mock-Antwort, da der AI-Service einen Fehler hat)",
     ];
 
     return {
