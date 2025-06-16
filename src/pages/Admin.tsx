@@ -1,10 +1,8 @@
 
-import { SecureAIEndpointManager } from "@/components/admin/SecureAIEndpointManager";
 import { KnowledgeManager } from "@/components/admin/KnowledgeManager";
 import { SecureAdminAuth } from "@/components/admin/SecureAdminAuth";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
@@ -46,24 +44,11 @@ const Admin = () => {
               Administrator-Bereich
             </h1>
             <p className="text-muted-foreground">
-              Sichere Verwaltung von KI-Services und Wissensbasis mit verschlüsselter Datenspeicherung.
+              Verwaltung der Wissensbasis für den KI-Assistenten.
             </p>
           </div>
 
-          <Tabs defaultValue="ai-services" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="ai-services">KI-Services</TabsTrigger>
-              <TabsTrigger value="knowledge">Wissensbasis</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="ai-services">
-              <SecureAIEndpointManager />
-            </TabsContent>
-            
-            <TabsContent value="knowledge">
-              <KnowledgeManager />
-            </TabsContent>
-          </Tabs>
+          <KnowledgeManager />
         </main>
       </div>
     </div>
