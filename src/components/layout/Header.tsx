@@ -20,7 +20,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onMenuClick, onResetChat }: HeaderProps) => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, signOut } = useAuth();
   const { setCurrentOffer, setHasGeneratedOffer } = useOffer();
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ export const Header = ({ onMenuClick, onResetChat }: HeaderProps) => {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate('/');
   };
 
