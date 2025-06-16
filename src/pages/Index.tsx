@@ -23,9 +23,23 @@ const Index = () => {
     });
   };
 
+  const handleResetChat = () => {
+    // Clear offer state
+    setCurrentOffer(null);
+    setHasGeneratedOffer(false);
+    
+    toast({
+      title: "Chat zurückgesetzt",
+      description: "Chat und Angebot wurden erfolgreich zurückgesetzt.",
+    });
+  };
+
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
-      <Header onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <Header 
+        onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+        onResetChat={handleResetChat}
+      />
       
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />

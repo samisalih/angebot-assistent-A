@@ -37,10 +37,15 @@ export const useOfferLimits = () => {
     return true;
   };
 
+  const resetOfferCount = () => {
+    setOffersGenerated(0);
+  };
+
   return {
     offersGenerated,
     canCreateOffer,
     incrementOfferCount,
+    resetOfferCount,
     maxOffers: MAX_OFFERS_PER_CHAT
   };
 };

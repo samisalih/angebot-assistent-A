@@ -12,13 +12,22 @@ import { OfferValidationService } from "@/domain/OfferValidationService";
 
 interface ChatContainerProps {
   onOfferGenerated: (offer: Offer) => void;
+  onReset?: () => void;
 }
 
-export const ChatContainer = ({ onOfferGenerated }: ChatContainerProps) => {
+export const ChatContainer = ({ onOfferGenerated, onReset }: ChatContainerProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const { messages, addMessage, canSendMessage } = useConversationManager();
-  const { offersGenerated, canCreateOffer, incrementOfferCount } = useOfferLimits();
+  const { messages, addMessage, canSendMessage, resetConversation } = useConversationManager();
+  const { offersGenerated, canCreateOffer, incrementOfferCount, resetOfferCount } = useOfferLimits();
+
+  const handleReset = () => {
+    resetConversation();
+    resetOfferCount();
+    if (onReset) {
+      onReset();
+    }
+  };
 
   const handleSend = async (messageText: string) => {
     if (!messageText.trim() || isLoading || !canSendMessage) return;

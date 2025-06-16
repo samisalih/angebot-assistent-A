@@ -8,15 +8,17 @@ import { useToast } from '@/hooks/use-toast';
 
 const STORAGE_KEY = 'chat_messages';
 
+const INITIAL_MESSAGE: Message = {
+  id: "1",
+  content: "Hallo! Ich bin Ihr KI-Berater. Erzählen Sie mir von Ihren Bedürfnissen und ich helfe Ihnen dabei, das perfekte Angebot zu erstellen. Womit kann ich Ihnen heute helfen?",
+  sender: "ai",
+  timestamp: new Date()
+};
+
 export const useConversationManager = () => {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([{
-    id: "1",
-    content: "Hallo! Ich bin Ihr KI-Berater. Erzählen Sie mir von Ihren Bedürfnissen und ich helfe Ihnen dabei, das perfekte Angebot zu erstellen. Womit kann ich Ihnen heute helfen?",
-    sender: "ai",
-    timestamp: new Date()
-  }]);
+  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Load existing conversation when user is authenticated
@@ -93,12 +95,24 @@ export const useConversationManager = () => {
     setMessages(prev => [...prev, message]);
   };
 
+  const resetConversation = () => {
+    setMessages([INITIAL_MESSAGE]);
+    setConversationId(null);
+    
+    // Clear localStorage for current user
+    if (user) {
+      const userStorageKey = `${STORAGE_KEY}_${user.id}`;
+      localStorage.removeItem(userStorageKey);
+    }
+  };
+
   const canSendMessage = ConversationService.canSendMessage(messages.length);
 
   return {
     messages,
     addMessage,
     canSendMessage,
-    conversationId
+    conversationId,
+    resetConversation
   };
 };
