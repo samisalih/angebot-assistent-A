@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { chatService } from "@/services/chatService";
 import { useToast } from "@/hooks/use-toast";
 import { MessageList } from "./MessageList";
@@ -12,22 +12,23 @@ import { OfferValidationService } from "@/domain/OfferValidationService";
 
 interface ChatContainerProps {
   onOfferGenerated: (offer: Offer) => void;
-  onReset?: () => void;
+  resetKey?: number;
 }
 
-export const ChatContainer = ({ onOfferGenerated, onReset }: ChatContainerProps) => {
+export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const { messages, addMessage, canSendMessage, resetConversation } = useConversationManager();
   const { offersGenerated, canCreateOffer, incrementOfferCount, resetOfferCount } = useOfferLimits();
 
-  const handleReset = () => {
-    resetConversation();
-    resetOfferCount();
-    if (onReset) {
-      onReset();
+  // Reset when resetKey changes
+  useEffect(() => {
+    if (resetKey && resetKey > 0) {
+      console.log('Resetting chat container due to resetKey change:', resetKey);
+      resetConversation();
+      resetOfferCount();
     }
-  };
+  }, [resetKey, resetConversation, resetOfferCount]);
 
   const handleSend = async (messageText: string) => {
     if (!messageText.trim() || isLoading || !canSendMessage) return;

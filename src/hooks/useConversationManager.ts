@@ -34,7 +34,10 @@ export const useConversationManager = () => {
               ...msg,
               timestamp: new Date(msg.timestamp)
             }));
-            setMessages(messagesWithDates);
+            // Only load if we have more than just the initial message
+            if (messagesWithDates.length > 1) {
+              setMessages(messagesWithDates);
+            }
           }
         } catch (error) {
           console.error('Error loading conversation:', error);
@@ -96,6 +99,7 @@ export const useConversationManager = () => {
   };
 
   const resetConversation = () => {
+    console.log('Resetting conversation to initial state');
     setMessages([INITIAL_MESSAGE]);
     setConversationId(null);
     
@@ -104,6 +108,8 @@ export const useConversationManager = () => {
       const userStorageKey = `${STORAGE_KEY}_${user.id}`;
       localStorage.removeItem(userStorageKey);
     }
+    // Also clear general storage key
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   const canSendMessage = ConversationService.canSendMessage(messages.length);
