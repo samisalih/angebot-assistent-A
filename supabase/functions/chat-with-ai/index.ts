@@ -27,15 +27,16 @@ serve(async (req) => {
   try {
     const { message, context, provider, config } = await req.json();
 
-    console.log('Processing chat request:', {
-      provider,
-      configName: config.name,
-      keyName: config.api_key_name
-    });
+    console.log('=== NEW CHAT REQUEST ===');
+    console.log('Provider:', provider);
+    console.log('Config name:', config.name);
+    console.log('API key name:', config.api_key_name);
+    console.log('Message preview:', message.substring(0, 100) + '...');
 
     // Get the API key from Supabase secrets
     let apiKey = null;
     
+    console.log('=== API KEY DETECTION ===');
     // First try to get from environment (Supabase secrets are loaded as env vars)
     if (config.api_key_name) {
       apiKey = Deno.env.get(config.api_key_name);
@@ -44,6 +45,7 @@ serve(async (req) => {
     
     // If still no API key, try some common fallbacks
     if (!apiKey) {
+      console.log('No API key found with specified name, trying fallbacks...');
       if (provider === 'openai') {
         apiKey = Deno.env.get('OPENAI_API_KEY');
         console.log('Fallback to OPENAI_API_KEY:', !!apiKey);
@@ -57,7 +59,9 @@ serve(async (req) => {
     }
     
     if (!apiKey) {
+      console.error(`=== ERROR: NO API KEY ===`);
       console.error(`No API key found for provider ${provider}. Checked: ${config.api_key_name}`);
+      console.error('Available env vars:', Object.keys(Deno.env.toObject()).filter(key => key.includes('API_KEY')));
       throw new Error(`API key ${config.api_key_name || 'for ' + provider} not found. Please configure it in Supabase Secrets.`);
     }
 
@@ -66,7 +70,7 @@ serve(async (req) => {
       console.log(`API key format: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
     }
 
-    console.log(`Successfully found API key for ${provider}`);
+    console.log(`=== CALLING AI SERVICE: ${provider.toUpperCase()} ===`);
 
     // Enhanced system prompt for offer generation
     const enhancedSystemPrompt = createEnhancedSystemPrompt(config.system_prompt);
@@ -87,39 +91,60 @@ serve(async (req) => {
     // Add current message
     messages.push({ role: 'user', content: message });
 
+    console.log('Prepared messages count:', messages.length);
+
     let aiMessage = '';
 
     // Handle different providers
     if (provider === 'openai') {
-      console.log('Calling OpenAI with API key');
+      console.log('=== CALLING OPENAI ===');
+      console.log('Endpoint:', config.endpoint_url);
       aiMessage = await callOpenAI(apiKey, config, messages);
+      console.log('OpenAI response received, length:', aiMessage.length);
     } else if (provider === 'anthropic') {
-      console.log('Calling Anthropic with API key');
+      console.log('=== CALLING ANTHROPIC ===');
       aiMessage = await callAnthropic(apiKey, config, messages, enhancedSystemPrompt);
+      console.log('Anthropic response received, length:', aiMessage.length);
     } else if (provider === 'gemini') {
-      console.log('Calling Gemini with API key');
+      console.log('=== CALLING GEMINI ===');
       aiMessage = await callGemini(apiKey, config, message);
+      console.log('Gemini response received, length:', aiMessage.length);
     } else {
       throw new Error(`Unsupported provider: ${provider}`);
     }
 
-    console.log('AI response generated successfully');
-    console.log('Raw AI message:', aiMessage);
+    console.log('=== AI RESPONSE PROCESSING ===');
+    console.log('Raw AI message preview:', aiMessage.substring(0, 200) + '...');
 
     // Parse offer from AI response
     const { offer, cleanMessage } = parseOfferFromMessage(aiMessage);
 
-    console.log('Final response:', { message: cleanMessage, offer });
+    console.log('=== OFFER PARSING RESULT ===');
+    console.log('Offer detected:', !!offer);
+    if (offer) {
+      console.log('Offer title:', offer.title);
+      console.log('Offer items count:', offer.items.length);
+      console.log('Offer total price:', offer.totalPrice);
+    }
+    console.log('Clean message preview:', cleanMessage.substring(0, 200) + '...');
 
-    return new Response(JSON.stringify({ 
+    console.log('=== FINAL RESPONSE ===');
+    const finalResponse = { 
       message: cleanMessage,
       offer: offer
-    }), {
+    };
+    console.log('Sending response with offer:', !!finalResponse.offer);
+
+    return new Response(JSON.stringify(finalResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in chat-with-ai function:', error);
+    console.error('=== ERROR IN CHAT FUNCTION ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
     return new Response(JSON.stringify({ 
       error: error.message,
       message: "Entschuldigung, es gab einen Fehler bei der Verarbeitung Ihrer Anfrage. Bitte versuchen Sie es erneut."

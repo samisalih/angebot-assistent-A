@@ -37,7 +37,7 @@ class ChatService {
     config: any;
   } | null> {
     try {
-      console.log('Getting active AI service configuration...');
+      console.log('=== GETTING ACTIVE AI SERVICE ===');
       // Get the first available service configuration
       const { data: allServices, error: allError } = await supabase
         .from('ai_service_config')
@@ -57,6 +57,9 @@ class ChatService {
 
       const config = allServices[0];
       console.log('Using service configuration:', config.service_name);
+      console.log('Service endpoint:', config.endpoint_url);
+      console.log('Service API key name:', config.api_key_name);
+      
       return this.formatServiceConfig(config);
     } catch (error) {
       console.error('Error in getActiveService:', error);
@@ -183,20 +186,26 @@ class ChatService {
   }
 
   async sendMessage(message: string, context: Message[]): Promise<ChatResponse> {
-    console.log('ChatService: sendMessage called with:', { message: message.substring(0, 50) + '...', contextLength: context.length });
+    console.log('=== CHAT SERVICE: SEND MESSAGE ===');
+    console.log('Message preview:', message.substring(0, 50) + '...');
+    console.log('Context length:', context.length);
     
     const activeService = await this.getActiveService();
     
     if (!activeService) {
-      console.warn('No AI service configured, using mock response');
+      console.warn('=== NO AI SERVICE CONFIGURED ===');
+      console.warn('Falling back to mock response');
       return this.getMockResponse(message, context);
     }
 
     try {
-      console.log('Calling AI service via Edge Function:', activeService.config.name);
+      console.log('=== CALLING AI SERVICE VIA EDGE FUNCTION ===');
+      console.log('Provider:', activeService.provider);
+      console.log('Config name:', activeService.config.name);
       
       // Get knowledge base content
       const knowledgeBase = await this.getKnowledgeBase();
+      console.log('Knowledge base loaded, length:', knowledgeBase.length);
       
       // Convert messages to the format expected by the API (with string timestamps)
       const contextForApi = context.slice(-5).map(msg => ({
@@ -205,6 +214,8 @@ class ChatService {
         sender: msg.sender,
         timestamp: msg.timestamp.toISOString()
       }));
+      
+      console.log('Context for API prepared, messages count:', contextForApi.length);
       
       // Call the AI service via Supabase Edge Function
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
@@ -221,22 +232,30 @@ class ChatService {
       });
 
       if (error) {
-        console.error('Edge Function error:', error);
+        console.error('=== EDGE FUNCTION ERROR ===');
+        console.error('Error details:', error);
         console.log('Falling back to mock response due to Edge Function error');
         return this.getMockResponse(message, context);
       }
 
       if (!data) {
-        console.error('No response from AI service');
+        console.error('=== NO RESPONSE FROM AI SERVICE ===');
         console.log('Falling back to mock response due to no data');
         return this.getMockResponse(message, context);
       }
 
-      console.log('AI response received successfully:', data);
+      console.log('=== AI RESPONSE RECEIVED ===');
+      console.log('Response has message:', !!data.message);
+      console.log('Response has offer:', !!data.offer);
+      console.log('Message preview:', data.message ? data.message.substring(0, 100) + '...' : 'No message');
 
       if (data && data.message) {
         const offer = data.offer;
         if (offer) {
+          console.log('=== PROCESSING OFFER ===');
+          console.log('Offer title:', offer.title);
+          console.log('Offer items:', offer.items?.length || 0);
+          
           let validUntilDate;
           if (offer.validUntil) {
             validUntilDate = new Date(offer.validUntil);
@@ -247,11 +266,14 @@ class ChatService {
             const futureDate = new Date();
             futureDate.setDate(futureDate.getDate() + 14); // Set to 14 days in the future
             offer.validUntil = futureDate.toISOString();
+            console.log('Updated offer validUntil to:', offer.validUntil);
           } else {
             // Ensure it's an ISO string if it was a valid date object or string
             offer.validUntil = validUntilDate.toISOString();
           }
         }
+        
+        console.log('=== RETURNING SUCCESSFUL RESPONSE ===');
         return {
           message: data.message,
           offer: offer
@@ -261,6 +283,7 @@ class ChatService {
       console.error('Invalid response format from AI service');
       return this.getMockResponse(message, context);
     } catch (error) {
+      console.error('=== CATCH BLOCK ERROR ===');
       console.error('Error calling AI service:', error);
       // Fallback to mock response on error
       console.log('Falling back to mock response due to catch block');
