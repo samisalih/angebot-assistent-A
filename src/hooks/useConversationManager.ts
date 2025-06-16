@@ -20,11 +20,12 @@ export const useConversationManager = () => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [hasBeenReset, setHasBeenReset] = useState(false);
 
   // Load existing conversation when user is authenticated
   useEffect(() => {
     const loadUserConversation = async () => {
-      if (isAuthenticated && user) {
+      if (isAuthenticated && user && !hasBeenReset) {
         try {
           const conversation = await getUserConversation();
           if (conversation) {
@@ -45,11 +46,11 @@ export const useConversationManager = () => {
       }
     };
     loadUserConversation();
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, hasBeenReset]);
 
   // Save messages to localStorage and database when messages change and user is authenticated
   useEffect(() => {
-    if (isAuthenticated && user && messages.length > 1) {
+    if (isAuthenticated && user && messages.length > 1 && !hasBeenReset) {
       const userStorageKey = `${STORAGE_KEY}_${user.id}`;
       localStorage.setItem(userStorageKey, JSON.stringify(messages));
 
@@ -92,14 +93,21 @@ export const useConversationManager = () => {
       };
       saveToDatabase();
     }
-  }, [messages, isAuthenticated, user, conversationId, toast]);
+  }, [messages, isAuthenticated, user, conversationId, toast, hasBeenReset]);
 
   const addMessage = (message: Message) => {
     setMessages(prev => [...prev, message]);
+    // Reset the flag when new messages are added
+    if (hasBeenReset) {
+      setHasBeenReset(false);
+    }
   };
 
   const resetConversation = async () => {
     console.log('Resetting conversation to initial state');
+    
+    // Set reset flag to prevent automatic loading
+    setHasBeenReset(true);
     
     // Delete conversation from database if it exists
     if (conversationId) {
