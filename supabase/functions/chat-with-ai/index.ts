@@ -1,6 +1,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
 import { parseOfferFromMessage } from './offerParser.ts';
 import { callOpenAI, callAnthropic, callGemini } from './aiProviders.ts';
 import { createEnhancedSystemPrompt } from './systemPrompt.ts';
@@ -29,19 +30,38 @@ serve(async (req) => {
     console.log('Processing chat request:', {
       provider,
       configName: config.name,
-      hasStoredKey: !!config.api_key,
       keyName: config.api_key_name
     });
 
-    // Get the API key from stored value or environment
-    let apiKey = config.api_key; // First try stored API key
+    // Get the API key from Supabase secrets
+    let apiKey = null;
+    
+    // First try to get from environment (Supabase secrets are loaded as env vars)
+    if (config.api_key_name) {
+      apiKey = Deno.env.get(config.api_key_name);
+      console.log(`Looking for API key: ${config.api_key_name}, found: ${!!apiKey}`);
+    }
+    
+    // If still no API key, try some common fallbacks
     if (!apiKey) {
-      apiKey = Deno.env.get(config.api_key_name); // Fallback to environment
+      if (provider === 'openai') {
+        apiKey = Deno.env.get('OPENAI_API_KEY');
+        console.log('Fallback to OPENAI_API_KEY:', !!apiKey);
+      } else if (provider === 'anthropic') {
+        apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+        console.log('Fallback to ANTHROPIC_API_KEY:', !!apiKey);
+      } else if (provider === 'gemini') {
+        apiKey = Deno.env.get('GEMINI_API_KEY');
+        console.log('Fallback to GEMINI_API_KEY:', !!apiKey);
+      }
     }
     
     if (!apiKey) {
-      throw new Error(`API key ${config.api_key_name} not found in config or environment. Please configure it in the admin panel or set as environment variable.`);
+      console.error(`No API key found for provider ${provider}. Checked: ${config.api_key_name}`);
+      throw new Error(`API key ${config.api_key_name || 'for ' + provider} not found. Please configure it in Supabase Secrets.`);
     }
+
+    console.log(`Successfully found API key for ${provider}`);
 
     // Enhanced system prompt for offer generation
     const enhancedSystemPrompt = createEnhancedSystemPrompt(config.system_prompt);
@@ -66,11 +86,16 @@ serve(async (req) => {
 
     // Handle different providers
     if (provider === 'openai') {
+      console.log('Calling OpenAI with API key');
       aiMessage = await callOpenAI(apiKey, config, messages);
     } else if (provider === 'anthropic') {
+      console.log('Calling Anthropic with API key');
       aiMessage = await callAnthropic(apiKey, config, messages, enhancedSystemPrompt);
     } else if (provider === 'gemini') {
+      console.log('Calling Gemini with API key');
       aiMessage = await callGemini(apiKey, config, message);
+    } else {
+      throw new Error(`Unsupported provider: ${provider}`);
     }
 
     console.log('AI response generated successfully');
