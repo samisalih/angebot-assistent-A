@@ -53,9 +53,8 @@ export class AppointmentDomain {
   }
 
   private isValidEmail(email: string): boolean {
-    // Use a more secure approach to prevent ReDoS attacks
-    // First check basic structure without vulnerable regex
-    if (!email || email.length > 254) {
+    // Complete non-regex approach to prevent ReDoS attacks
+    if (!email || email.length === 0 || email.length > 254) {
       return false;
     }
 
@@ -84,8 +83,80 @@ export class AppointmentDomain {
       return false;
     }
 
-    // Use simple, non-backtracking regex for final validation
-    const safeEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return safeEmailRegex.test(email);
+    // Validate characters without regex
+    return this.isValidLocalPart(localPart) && this.isValidDomainPart(domainPart);
+  }
+
+  private isValidLocalPart(localPart: string): boolean {
+    // Check each character individually to avoid regex
+    for (let i = 0; i < localPart.length; i++) {
+      const char = localPart.charAt(i);
+      const code = char.charCodeAt(0);
+      
+      // Allow a-z, A-Z, 0-9, and specific special characters
+      const isLetter = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+      const isDigit = code >= 48 && code <= 57;
+      const isAllowedSpecial = char === '.' || char === '_' || char === '%' || char === '+' || char === '-';
+      
+      if (!isLetter && !isDigit && !isAllowedSpecial) {
+        return false;
+      }
+    }
+    
+    // Local part cannot start or end with a dot
+    return !localPart.startsWith('.') && !localPart.endsWith('.');
+  }
+
+  private isValidDomainPart(domainPart: string): boolean {
+    // Split domain by dots
+    const parts = domainPart.split('.');
+    
+    // Must have at least 2 parts (e.g., "example.com")
+    if (parts.length < 2) {
+      return false;
+    }
+    
+    // Check each part
+    for (const part of parts) {
+      if (part.length === 0 || part.length > 63) {
+        return false;
+      }
+      
+      // Check characters in each part
+      for (let i = 0; i < part.length; i++) {
+        const char = part.charAt(i);
+        const code = char.charCodeAt(0);
+        
+        // Allow a-z, A-Z, 0-9, and hyphen (but not at start/end)
+        const isLetter = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+        const isDigit = code >= 48 && code <= 57;
+        const isHyphen = char === '-';
+        
+        if (!isLetter && !isDigit && !isHyphen) {
+          return false;
+        }
+        
+        // Hyphen cannot be at start or end of a part
+        if (isHyphen && (i === 0 || i === part.length - 1)) {
+          return false;
+        }
+      }
+    }
+    
+    // Last part (TLD) must be at least 2 characters and contain only letters
+    const tld = parts[parts.length - 1];
+    if (tld.length < 2) {
+      return false;
+    }
+    
+    for (let i = 0; i < tld.length; i++) {
+      const code = tld.charCodeAt(i);
+      const isLetter = (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+      if (!isLetter) {
+        return false;
+      }
+    }
+    
+    return true;
   }
 }
