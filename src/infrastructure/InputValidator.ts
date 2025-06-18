@@ -1,4 +1,5 @@
 
+import DOMPurify from 'dompurify';
 import { IInputValidator } from '@/domain/ChatDomain';
 
 export class InputValidator implements IInputValidator {
@@ -39,9 +40,14 @@ export class InputValidator implements IInputValidator {
   }
 
   sanitize(input: string): string {
-    return input
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/<[^>]*>/g, '')
+    // Use DOMPurify to safely remove HTML tags and scripts
+    const sanitized = DOMPurify.sanitize(input, { 
+      ALLOWED_TAGS: [], // Remove all HTML tags
+      ALLOWED_ATTR: [], // Remove all attributes
+      KEEP_CONTENT: true // Keep text content
+    });
+    
+    return sanitized
       .trim()
       .slice(0, InputValidator.MAX_MESSAGE_LENGTH);
   }
