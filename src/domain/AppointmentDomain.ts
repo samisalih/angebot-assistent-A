@@ -53,7 +53,39 @@ export class AppointmentDomain {
   }
 
   private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    // Use a more secure approach to prevent ReDoS attacks
+    // First check basic structure without vulnerable regex
+    if (!email || email.length > 254) {
+      return false;
+    }
+
+    // Check for exactly one @ symbol
+    const atIndex = email.indexOf('@');
+    if (atIndex === -1 || atIndex !== email.lastIndexOf('@')) {
+      return false;
+    }
+
+    // Split into local and domain parts
+    const localPart = email.substring(0, atIndex);
+    const domainPart = email.substring(atIndex + 1);
+
+    // Validate local part (before @)
+    if (localPart.length === 0 || localPart.length > 64) {
+      return false;
+    }
+
+    // Validate domain part (after @)
+    if (domainPart.length === 0 || domainPart.length > 253) {
+      return false;
+    }
+
+    // Check for at least one dot in domain
+    if (!domainPart.includes('.')) {
+      return false;
+    }
+
+    // Use simple, non-backtracking regex for final validation
+    const safeEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return safeEmailRegex.test(email);
   }
 }
