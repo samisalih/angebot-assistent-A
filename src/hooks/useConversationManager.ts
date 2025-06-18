@@ -22,6 +22,31 @@ export const useConversationManager = () => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [hasBeenReset, setHasBeenReset] = useState(false);
 
+  const saveToDatabase = async () => {
+    try {
+      const messagesForApi = messages.map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp.toISOString()
+      }));
+      
+      if (conversationId) {
+        await updateConversation(conversationId, messagesForApi);
+      } else {
+        const conversation = await saveConversation(messagesForApi);
+        setConversationId(conversation.id);
+      }
+    } catch (error: any) {
+      console.error('Error saving conversation to database:', error);
+      if (error.message?.includes('Conversation cannot have more than 50 messages')) {
+        toast({
+          title: "Nachrichtenlimit erreicht",
+          description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   // Load existing conversation when user is authenticated
   useEffect(() => {
     const loadUserConversation = async () => {
@@ -59,34 +84,9 @@ export const useConversationManager = () => {
         });
       }
 
-      this.saveToDatabase();
+      saveToDatabase();
     }
   }, [messages, isAuthenticated, user, conversationId, toast, hasBeenReset]);
-
-  private async saveToDatabase() {
-    try {
-      const messagesForApi = messages.map(msg => ({
-        ...msg,
-        timestamp: msg.timestamp.toISOString()
-      }));
-      
-      if (conversationId) {
-        await updateConversation(conversationId, messagesForApi);
-      } else {
-        const conversation = await saveConversation(messagesForApi);
-        setConversationId(conversation.id);
-      }
-    } catch (error: any) {
-      console.error('Error saving conversation to database:', error);
-      if (error.message?.includes('Conversation cannot have more than 50 messages')) {
-        toast({
-          title: "Nachrichtenlimit erreicht",
-          description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht.",
-          variant: "destructive"
-        });
-      }
-    }
-  }
 
   const addMessage = (message: Message) => {
     setMessages(prev => [...prev, message]);

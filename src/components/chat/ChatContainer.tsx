@@ -15,6 +15,19 @@ interface ChatContainerProps {
   resetKey?: number;
 }
 
+const getErrorMessage = (error: any): string => {
+  if (error.message?.includes('Zu viele Anfragen')) {
+    return error.message;
+  }
+  if (error.message?.includes('nicht erlaubte Inhalte')) {
+    return "Ihre Nachricht enthält nicht erlaubte Inhalte. Bitte formulieren Sie sie neu.";
+  }
+  if (error.message?.includes('zu lang')) {
+    return "Ihre Nachricht ist zu lang. Bitte kürzen Sie sie.";
+  }
+  return "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.";
+};
+
 export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +88,7 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
     } catch (error: any) {
       console.error("Error sending message:", error);
       
-      const errorMessage = this.getErrorMessage(error);
+      const errorMessage = getErrorMessage(error);
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
         content: errorMessage,
@@ -93,19 +106,6 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
       setIsLoading(false);
     }
   };
-
-  private getErrorMessage(error: any): string {
-    if (error.message?.includes('Zu viele Anfragen')) {
-      return error.message;
-    }
-    if (error.message?.includes('nicht erlaubte Inhalte')) {
-      return "Ihre Nachricht enthält nicht erlaubte Inhalte. Bitte formulieren Sie sie neu.";
-    }
-    if (error.message?.includes('zu lang')) {
-      return "Ihre Nachricht ist zu lang. Bitte kürzen Sie sie.";
-    }
-    return "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.";
-  }
 
   const isInputDisabled = !canSendMessage;
   const inputPlaceholder = !canSendMessage 
