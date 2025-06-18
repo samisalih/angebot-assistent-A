@@ -19,7 +19,7 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const { messages, addMessage, canSendMessage, resetConversation } = useConversationManager();
-  const { offersGenerated, canCreateOffer, incrementOfferCount, resetOfferCount } = useOfferLimits();
+  const { canCreateOffer, incrementOfferCount, resetOfferCount } = useOfferLimits();
 
   // Reset when resetKey changes
   useEffect(() => {
@@ -35,16 +35,6 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
 
   const handleSend = async (messageText: string) => {
     if (!messageText.trim() || isLoading || !canSendMessage) return;
-
-    // Additional security validation
-    if (messageText.length > 2000) {
-      toast({
-        title: "Nachricht zu lang",
-        description: "Nachrichten dürfen maximal 2000 Zeichen lang sein.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -70,7 +60,7 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
       
       addMessage(assistantMessage);
 
-      // Check if an offer was generated
+      // Handle offer generation
       if (response.offer) {
         console.log('Offer detected in response:', response.offer);
         if (canCreateOffer) {
@@ -81,23 +71,11 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
         } else {
           console.log('Cannot create offer - limit reached');
         }
-      } else {
-        console.log('No offer in response');
       }
     } catch (error: any) {
       console.error("Error sending message:", error);
       
-      // Enhanced error handling with specific error messages
-      let errorMessage = "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.";
-      
-      if (error.message?.includes('Zu viele Anfragen')) {
-        errorMessage = error.message;
-      } else if (error.message?.includes('nicht erlaubte Inhalte')) {
-        errorMessage = "Ihre Nachricht enthält nicht erlaubte Inhalte. Bitte formulieren Sie sie neu.";
-      } else if (error.message?.includes('zu lang')) {
-        errorMessage = "Ihre Nachricht ist zu lang. Bitte kürzen Sie sie.";
-      }
-      
+      const errorMessage = this.getErrorMessage(error);
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
         content: errorMessage,
@@ -115,6 +93,19 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
       setIsLoading(false);
     }
   };
+
+  private getErrorMessage(error: any): string {
+    if (error.message?.includes('Zu viele Anfragen')) {
+      return error.message;
+    }
+    if (error.message?.includes('nicht erlaubte Inhalte')) {
+      return "Ihre Nachricht enthält nicht erlaubte Inhalte. Bitte formulieren Sie sie neu.";
+    }
+    if (error.message?.includes('zu lang')) {
+      return "Ihre Nachricht ist zu lang. Bitte kürzen Sie sie.";
+    }
+    return "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.";
+  }
 
   const isInputDisabled = !canSendMessage;
   const inputPlaceholder = !canSendMessage 

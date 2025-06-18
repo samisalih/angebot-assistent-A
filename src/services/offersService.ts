@@ -1,32 +1,21 @@
 
 import { SupabaseOfferRepository } from '@/repositories/SupabaseOfferRepository';
-import { IOfferRepository } from '@/repositories/IOfferRepository';
+import { OfferDomain } from '@/domain/OfferDomain';
 import { Offer, SavedOffer } from '@/types/offer';
 
-// Use dependency injection pattern
-class OffersService {
-  constructor(private offerRepository: IOfferRepository) {}
-
-  async saveOffer(offer: Offer): Promise<SavedOffer> {
-    return this.offerRepository.save(offer);
-  }
-
-  async getSavedOffers(): Promise<SavedOffer[]> {
-    return this.offerRepository.getAll();
-  }
-
-  async deleteSavedOffer(offerId: string): Promise<void> {
-    return this.offerRepository.delete(offerId);
-  }
-}
-
-// Create singleton instance with Supabase repository
-const offersService = new OffersService(new SupabaseOfferRepository());
+// Dependency injection
+const offerRepository = new SupabaseOfferRepository();
+const offerDomain = new OfferDomain(offerRepository);
 
 // Export individual functions for backward compatibility
-export const saveOffer = (offer: Offer) => offersService.saveOffer(offer);
-export const getSavedOffers = () => offersService.getSavedOffers();
-export const deleteSavedOffer = (offerId: string) => offersService.deleteSavedOffer(offerId);
+export const saveOffer = (offer: Offer): Promise<SavedOffer> => 
+  offerDomain.saveOffer(offer);
+
+export const getSavedOffers = (): Promise<SavedOffer[]> => 
+  offerDomain.getSavedOffers();
+
+export const deleteSavedOffer = (offerId: string): Promise<void> => 
+  offerDomain.deleteSavedOffer(offerId);
 
 // Export types for external use
 export type { SavedOffer };

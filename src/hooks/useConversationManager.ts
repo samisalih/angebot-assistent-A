@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Message } from '@/types/message';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserConversation, updateConversation, saveConversation, deleteConversation } from '@/services/conversationsService';
-import { ConversationService } from '@/domain/ConversationService';
+import { ConversationDomain } from '@/domain/ConversationDomain';
 import { useToast } from '@/hooks/use-toast';
 
 const STORAGE_KEY = 'chat_messages';
@@ -28,17 +28,13 @@ export const useConversationManager = () => {
       if (isAuthenticated && user && !hasBeenReset) {
         try {
           const conversation = await getUserConversation();
-          if (conversation) {
+          if (conversation && conversation.messages.length > 1) {
             setConversationId(conversation.id);
-            const conversationMessages = Array.isArray(conversation.messages) ? conversation.messages : [];
-            const messagesWithDates = conversationMessages.map((msg: any) => ({
+            const messagesWithDates = conversation.messages.map((msg: any) => ({
               ...msg,
               timestamp: new Date(msg.timestamp)
             }));
-            // Only load if we have more than just the initial message
-            if (messagesWithDates.length > 1) {
-              setMessages(messagesWithDates);
-            }
+            setMessages(messagesWithDates);
           }
         } catch (error) {
           console.error('Error loading conversation:', error);
@@ -48,13 +44,13 @@ export const useConversationManager = () => {
     loadUserConversation();
   }, [isAuthenticated, user, hasBeenReset]);
 
-  // Save messages to localStorage and database when messages change and user is authenticated
+  // Save messages when they change
   useEffect(() => {
     if (isAuthenticated && user && messages.length > 1 && !hasBeenReset) {
       const userStorageKey = `${STORAGE_KEY}_${user.id}`;
       localStorage.setItem(userStorageKey, JSON.stringify(messages));
 
-      const warning = ConversationService.getMessageLimitWarning(messages.length);
+      const warning = ConversationDomain.getMessageLimitWarning(messages.length);
       if (warning) {
         toast({
           title: "Nachrichtenlimit erreicht",
@@ -63,41 +59,37 @@ export const useConversationManager = () => {
         });
       }
 
-      const saveToDatabase = async () => {
-        try {
-          const messagesForApi = messages.map(msg => ({
-            ...msg,
-            timestamp: msg.timestamp.toISOString()
-          }));
-          
-          if (conversationId) {
-            await updateConversation(conversationId, messagesForApi);
-          } else {
-            try {
-              const conversation = await saveConversation(messagesForApi);
-              setConversationId(conversation.id);
-            } catch (error: any) {
-              console.error('Error saving conversation:', error);
-            }
-          }
-        } catch (error: any) {
-          console.error('Error saving conversation to database:', error);
-          if (error.message?.includes('Conversation cannot have more than 50 messages')) {
-            toast({
-              title: "Nachrichtenlimit erreicht",
-              description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht.",
-              variant: "destructive"
-            });
-          }
-        }
-      };
-      saveToDatabase();
+      this.saveToDatabase();
     }
   }, [messages, isAuthenticated, user, conversationId, toast, hasBeenReset]);
 
+  private async saveToDatabase() {
+    try {
+      const messagesForApi = messages.map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp.toISOString()
+      }));
+      
+      if (conversationId) {
+        await updateConversation(conversationId, messagesForApi);
+      } else {
+        const conversation = await saveConversation(messagesForApi);
+        setConversationId(conversation.id);
+      }
+    } catch (error: any) {
+      console.error('Error saving conversation to database:', error);
+      if (error.message?.includes('Conversation cannot have more than 50 messages')) {
+        toast({
+          title: "Nachrichtenlimit erreicht",
+          description: "Diese Unterhaltung hat das Maximum von 50 Nachrichten erreicht.",
+          variant: "destructive"
+        });
+      }
+    }
+  }
+
   const addMessage = (message: Message) => {
     setMessages(prev => [...prev, message]);
-    // Reset the flag when new messages are added
     if (hasBeenReset) {
       setHasBeenReset(false);
     }
@@ -106,7 +98,6 @@ export const useConversationManager = () => {
   const resetConversation = async () => {
     console.log('Resetting conversation to initial state');
     
-    // Set reset flag to prevent automatic loading
     setHasBeenReset(true);
     
     // Delete conversation from database if it exists
@@ -123,16 +114,15 @@ export const useConversationManager = () => {
     setMessages([INITIAL_MESSAGE]);
     setConversationId(null);
     
-    // Clear localStorage for current user
+    // Clear localStorage
     if (user) {
       const userStorageKey = `${STORAGE_KEY}_${user.id}`;
       localStorage.removeItem(userStorageKey);
     }
-    // Also clear general storage key
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  const canSendMessage = ConversationService.canSendMessage(messages.length);
+  const canSendMessage = ConversationDomain.canSendMessage(messages.length);
 
   return {
     messages,
