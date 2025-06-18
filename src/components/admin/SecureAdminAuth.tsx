@@ -24,6 +24,21 @@ export const SecureAdminAuth = ({ onAuthenticated }: SecureAdminAuthProps) => {
     }
   }, [isAdmin, isAdminLoading, onAuthenticated]);
 
+  const logAdminCreationAttempt = async (targetUserId: string, success: boolean, errorMessage?: string) => {
+    try {
+      await supabase
+        .from('admin_creation_log')
+        .insert({
+          created_by: user?.id,
+          target_user_id: targetUserId,
+          success,
+          error_message: errorMessage,
+        });
+    } catch (error) {
+      console.error('Failed to log admin creation attempt:', error);
+    }
+  };
+
   const handleCreateFirstAdmin = async () => {
     if (!user) {
       toast({
@@ -36,6 +51,28 @@ export const SecureAdminAuth = ({ onAuthenticated }: SecureAdminAuthProps) => {
 
     setIsCreatingAdmin(true);
     try {
+      // Check if any admins already exist (race condition protection)
+      const { data: existingAdmins, error: checkError } = await supabase
+        .from('admin_users')
+        .select('id')
+        .eq('is_active', true)
+        .limit(1);
+
+      if (checkError) {
+        throw new Error(`Fehler beim Überprüfen bestehender Admins: ${checkError.message}`);
+      }
+
+      if (existingAdmins && existingAdmins.length > 0) {
+        await logAdminCreationAttempt(user.id, false, 'Admin bereits vorhanden');
+        toast({
+          title: "Admin bereits vorhanden",
+          description: "Es existiert bereits ein Administrator-Benutzer.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Attempt to create admin user
       const { error } = await supabase
         .from('admin_users')
         .insert({
@@ -45,8 +82,11 @@ export const SecureAdminAuth = ({ onAuthenticated }: SecureAdminAuthProps) => {
         });
 
       if (error) {
+        await logAdminCreationAttempt(user.id, false, error.message);
         throw error;
       }
+
+      await logAdminCreationAttempt(user.id, true);
 
       toast({
         title: "Admin-Benutzer erstellt",
@@ -55,11 +95,18 @@ export const SecureAdminAuth = ({ onAuthenticated }: SecureAdminAuthProps) => {
 
       // Trigger re-check of admin status
       window.location.reload();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating admin user:', error);
+      await logAdminCreationAttempt(user?.id || '', false, error.message);
+      
+      let errorMessage = "Admin-Benutzer konnte nicht erstellt werden.";
+      if (error.message?.includes('unique_first_admin')) {
+        errorMessage = "Ein Administrator wurde bereits erstellt. Nur ein Administrator ist erlaubt.";
+      }
+      
       toast({
         title: "Fehler",
-        description: "Admin-Benutzer konnte nicht erstellt werden.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

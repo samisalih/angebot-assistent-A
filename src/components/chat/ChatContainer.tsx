@@ -36,6 +36,16 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
   const handleSend = async (messageText: string) => {
     if (!messageText.trim() || isLoading || !canSendMessage) return;
 
+    // Additional security validation
+    if (messageText.length > 2000) {
+      toast({
+        title: "Nachricht zu lang",
+        description: "Nachrichten dürfen maximal 2000 Zeichen lang sein.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       content: messageText,
@@ -60,7 +70,7 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
       
       addMessage(assistantMessage);
 
-      // Prüfe ob ein Angebot generiert wurde
+      // Check if an offer was generated
       if (response.offer) {
         console.log('Offer detected in response:', response.offer);
         if (canCreateOffer) {
@@ -74,15 +84,33 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
       } else {
         console.log('No offer in response');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
-      const errorMessage: Message = {
+      
+      // Enhanced error handling with specific error messages
+      let errorMessage = "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.";
+      
+      if (error.message?.includes('Zu viele Anfragen')) {
+        errorMessage = error.message;
+      } else if (error.message?.includes('nicht erlaubte Inhalte')) {
+        errorMessage = "Ihre Nachricht enthält nicht erlaubte Inhalte. Bitte formulieren Sie sie neu.";
+      } else if (error.message?.includes('zu lang')) {
+        errorMessage = "Ihre Nachricht ist zu lang. Bitte kürzen Sie sie.";
+      }
+      
+      const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.",
+        content: errorMessage,
         sender: "ai",
         timestamp: new Date()
       };
-      addMessage(errorMessage);
+      addMessage(errorResponse);
+
+      toast({
+        title: "Fehler",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }

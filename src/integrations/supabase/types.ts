@@ -56,6 +56,39 @@ export type Database = {
           },
         ]
       }
+      admin_creation_log: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          success: boolean
+          target_user_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          success: boolean
+          target_user_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          success?: boolean
+          target_user_id?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       admin_users: {
         Row: {
           created_at: string | null

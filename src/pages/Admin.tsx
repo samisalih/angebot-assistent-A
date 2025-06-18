@@ -26,7 +26,7 @@ const Admin = () => {
     );
   }
 
-  // Show secure auth component if not admin
+  // Always use SecureAdminAuth - no more insecure password-based auth
   if (!isAdmin) {
     return <SecureAdminAuth onAuthenticated={handleAuthenticated} />;
   }
