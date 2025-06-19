@@ -118,36 +118,41 @@ function parseOfferFromResponse(content: string) {
     const offerData = JSON.parse(offerMatch[1]);
     console.log('Parsed offer data:', offerData);
     
-    // Transform simple offer format to proper structure
-    if (offerData.price && !offerData.items && !offerData.totalPrice) {
-      return {
-        id: `offer-${Date.now()}`,
-        title: offerData.title || 'Individuelles Angebot',
-        description: offerData.description || 'Professionelle Beratungsleistung',
-        items: [{
-          name: offerData.title || 'Beratungsleistung',
-          description: offerData.description || 'Professionelle Beratung nach Ihren Anforderungen',
-          price: 102.50, // Standard hourly rate
-          quantity: Math.max(1, Math.round(offerData.price / 102.50)) // Calculate hours from total price
-        }],
-        totalPrice: offerData.price,
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-      };
-    }
-    
-    // If it already has the proper structure, return as-is
+    // Validate and fix offer data
     if (offerData.items && Array.isArray(offerData.items)) {
+      // Ensure all items have reasonable values
+      let calculatedTotal = 0;
+      
+      offerData.items = offerData.items.map((item: any) => {
+        // Ensure price is reasonable (between 50-200 EUR per hour)
+        const price = Math.min(Math.max(item.price || 102.50, 50), 200);
+        // Ensure quantity is reasonable (between 1-100 hours per item)
+        const quantity = Math.min(Math.max(item.quantity || 1, 1), 100);
+        
+        calculatedTotal += price * quantity;
+        
+        return {
+          name: item.name || 'Unbenannte Leistung',
+          description: item.description || 'Beschreibung fehlt',
+          price: price,
+          quantity: quantity
+        };
+      });
+      
+      // Update total price to match calculated total
+      offerData.totalPrice = Math.round(calculatedTotal * 100) / 100;
+      
       return {
         id: offerData.id || `offer-${Date.now()}`,
-        title: offerData.title,
-        description: offerData.description,
+        title: offerData.title || 'Individuelles Angebot',
+        description: offerData.description || 'Professionelle Beratungsleistung',
         items: offerData.items,
         totalPrice: offerData.totalPrice,
         validUntil: offerData.validUntil ? new Date(offerData.validUntil) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       };
     }
     
-    return offerData;
+    return null;
   } catch (error) {
     console.log('Failed to parse offer from response:', error);
     return null;
@@ -158,8 +163,13 @@ function buildSystemPromptWithKnowledge(knowledgeItems: any[]) {
   let basePrompt = `Du bist ein hilfsreicher KI-Berater für eine Beratungsfirma. 
 Beantworte Fragen professionell und hilfsreich auf Deutsch. 
 
-WICHTIG FÜR ANGEBOTE: Wenn du ein Angebot erstellen möchtest, teile es IMMER in mehrere detaillierte Positionen auf. 
-Verwende dieses Format:
+WICHTIG FÜR ANGEBOTE: 
+- Der Standard-Stundensatz beträgt 102,50 €
+- Stundenaufwände müssen REALISTISCH sein (zwischen 1-80 Stunden pro Position)
+- Jede Position sollte maximal 8.200 € kosten (80h × 102,50€)
+- Das Gesamtangebot sollte zwischen 500€ und 50.000€ liegen
+
+Wenn du ein Angebot erstellen möchtest, verwende EXAKT dieses Format:
 
 [OFFER]{
   "title": "Titel des Angebots",
@@ -181,12 +191,14 @@ Verwende dieses Format:
   "totalPrice": 2050
 }[/OFFER]
 
-Beispiel für ein Website-Projekt:
-- Position 1: "Konzeption und Planung" (8-12 Stunden)
-- Position 2: "Design und Layout" (15-20 Stunden) 
-- Position 3: "Technische Umsetzung" (20-30 Stunden)
-- Position 4: "Content Management Setup" (5-8 Stunden)
-- Position 5: "Testing und Go-Live" (3-5 Stunden)
+REALISTISCHE STUNDENAUFWÄNDE:
+- Beratungsgespräch: 1-3 Stunden
+- Konzeption: 4-12 Stunden  
+- Design: 8-40 Stunden
+- Frontend-Entwicklung: 20-80 Stunden
+- Backend-Entwicklung: 30-80 Stunden
+- Testing: 5-20 Stunden
+- Projektmanagement: 5-15 Stunden
 
 Teile NIEMALS alles in eine einzige Position auf. Verwende realistische Stundensätze und Stundenaufwände.`;
 
@@ -205,7 +217,8 @@ Teile NIEMALS alles in eine einzige Position auf. Verwende realistische Stundens
     basePrompt += `=== ENDE FIRMENWISSEN ===\n\n`;
     basePrompt += `WICHTIG: Berücksichtige die oben genannten Informationen bei der Beratung und Angebotserstellung. 
 Verwende die angegebenen Preise, Richtlinien und Unternehmensdetails. 
-Die Stundenaufwände müssen realistisch sein und den Firmenvorgaben entsprechen!`;
+Die Stundenaufwände müssen realistisch sein und den Firmenvorgaben entsprechen!
+NIEMALS mehr als 80 Stunden pro Position verwenden!`;
   } else {
     console.log('No knowledge base items available for system prompt');
   }
