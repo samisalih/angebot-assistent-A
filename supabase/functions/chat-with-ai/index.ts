@@ -52,6 +52,13 @@ async function fetchKnowledgeBase() {
     }
 
     console.log(`Loaded ${knowledgeItems?.length || 0} knowledge base items`);
+    if (knowledgeItems && knowledgeItems.length > 0) {
+      console.log('Knowledge base content preview:', knowledgeItems.map(item => ({ 
+        title: item.title, 
+        category: item.category,
+        contentLength: item.content?.length || 0 
+      })));
+    }
     return knowledgeItems;
   } catch (error) {
     console.error('Error in fetchKnowledgeBase:', error);
@@ -67,7 +74,7 @@ async function callOpenAI(messages: any[]) {
   }
 
   console.log('Calling OpenAI with', messages.length, 'messages');
-  console.log('API key configured:', !!apiKey);
+  console.log('System prompt length:', messages[0]?.content?.length || 0);
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -184,19 +191,26 @@ Beispiel für ein Website-Projekt:
 Teile NIEMALS alles in eine einzige Position auf. Verwende realistische Stundensätze und Stundenaufwände.`;
 
   if (knowledgeItems && knowledgeItems.length > 0) {
-    basePrompt += `\n\nFIRMENWISSEN UND RICHTLINIEN:\n`;
+    basePrompt += `\n\n=== FIRMENWISSEN UND RICHTLINIEN ===\n`;
+    basePrompt += `VERWENDE DIESE INFORMATIONEN UNBEDINGT für realistische Angebote und Preise:\n\n`;
     
     knowledgeItems.forEach((item, index) => {
-      basePrompt += `\n${index + 1}. ${item.title}`;
+      basePrompt += `${index + 1}. ${item.title}`;
       if (item.category) {
         basePrompt += ` (Kategorie: ${item.category})`;
       }
-      basePrompt += `:\n${item.content}\n`;
+      basePrompt += `:\n${item.content}\n\n`;
     });
     
-    basePrompt += `\n\nBitte berücksichtige diese Informationen bei der Beratung und Angebotserstellung. Verwende die angegebenen Preise, Richtlinien und Unternehmensdetails.`;
+    basePrompt += `=== ENDE FIRMENWISSEN ===\n\n`;
+    basePrompt += `WICHTIG: Berücksichtige die oben genannten Informationen bei der Beratung und Angebotserstellung. 
+Verwende die angegebenen Preise, Richtlinien und Unternehmensdetails. 
+Die Stundenaufwände müssen realistisch sein und den Firmenvorgaben entsprechen!`;
+  } else {
+    console.log('No knowledge base items available for system prompt');
   }
 
+  console.log('Final system prompt length:', basePrompt.length);
   return basePrompt;
 }
 
