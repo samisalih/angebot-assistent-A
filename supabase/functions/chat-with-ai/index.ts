@@ -33,13 +33,23 @@ function checkRateLimit(userId: string): boolean {
 }
 
 serve(async (req) => {
+  console.log('=== CHAT-WITH-AI FUNCTION START ===');
+  console.log('Request method:', req.method);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  console.log('Environment check:', {
+    hasSupabaseUrl: !!supabaseUrl,
+    hasServiceKey: !!supabaseServiceKey
+  });
   
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('Missing Supabase configuration');
@@ -52,17 +62,31 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    console.log('=== CHAT-WITH-AI FUNCTION START ===');
+    console.log('Parsing request body...');
+    const requestText = await req.text();
+    console.log('Raw request body:', requestText);
     
-    const { message, context } = await req.json();
-    console.log('Request received:', { 
+    let requestBody;
+    try {
+      requestBody = JSON.parse(requestText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { message, context } = requestBody;
+    console.log('Parsed request data:', { 
       messageLength: message?.length, 
-      contextLength: Array.isArray(context) ? context.length : 0 
+      contextLength: Array.isArray(context) ? context.length : 0,
+      messagePreview: message?.substring(0, 100)
     });
 
     if (!message || typeof message !== 'string') {
       console.error('Invalid message format:', typeof message);
-      return new Response(JSON.stringify({ error: 'Invalid message format' }), {
+      return new Response(JSON.stringify({ error: 'Message is required and must be a string' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -88,9 +112,11 @@ serve(async (req) => {
         if (!error && user) {
           userId = user.id;
           console.log('User authenticated:', userId);
+        } else {
+          console.log('Auth validation failed:', error);
         }
       } catch (error) {
-        console.log('Auth validation failed:', error);
+        console.log('Auth validation error:', error);
       }
     }
 
@@ -167,6 +193,8 @@ serve(async (req) => {
       if (!error && data) {
         knowledgeBase = data;
         console.log('Knowledge base loaded:', knowledgeBase.length, 'entries');
+      } else {
+        console.log('No knowledge base data or error:', error);
       }
     } catch (error) {
       console.error('Error fetching knowledge base:', error);
@@ -184,18 +212,23 @@ serve(async (req) => {
     ];
 
     console.log('Calling AI provider:', configs.service_name);
+    console.log('Total messages for AI:', messages.length);
+    
     let aiResponse;
     
     // Enhanced AI provider selection with fallback
     try {
       switch (configs.service_name) {
         case 'OpenAI':
+          console.log('Calling OpenAI...');
           aiResponse = await callOpenAI(messages, configs);
           break;
         case 'Anthropic':
+          console.log('Calling Anthropic...');
           aiResponse = await callAnthropic(messages, configs);
           break;
         case 'Gemini':
+          console.log('Calling Gemini...');
           aiResponse = await callGemini(messages, configs);
           break;
         default:
@@ -225,6 +258,12 @@ serve(async (req) => {
         throw providerError;
       }
     }
+
+    console.log('AI response received:', {
+      hasResponse: !!aiResponse,
+      hasMessage: !!aiResponse?.message,
+      messageLength: aiResponse?.message?.length
+    });
 
     if (!aiResponse || !aiResponse.message) {
       console.error('No response received from AI service');
@@ -268,6 +307,11 @@ serve(async (req) => {
     };
 
     console.log('=== CHAT-WITH-AI FUNCTION SUCCESS ===');
+    console.log('Final response:', {
+      hasMessage: !!response.message,
+      messageLength: response.message?.length,
+      hasOffer: !!response.offer
+    });
     
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -275,7 +319,12 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('=== CHAT-WITH-AI FUNCTION ERROR ===');
-    console.error('Error in chat-with-ai function:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause
+    });
     
     // Enhanced error categorization
     let statusCode = 500;
@@ -290,7 +339,7 @@ serve(async (req) => {
     } else if (error.message?.includes('timeout')) {
       statusCode = 504;
       errorMessage = 'Anfrage dauerte zu lange. Bitte versuchen Sie es erneut.';
-    } else if (error.message?.includes('Invalid message')) {
+    } else if (error.message?.includes('Invalid message') || error.message?.includes('Invalid JSON')) {
       statusCode = 400;
       errorMessage = error.message;
     } else if (error.message?.includes('temporarily unavailable')) {

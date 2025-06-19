@@ -11,35 +11,56 @@ export class SupabaseChatRepository implements IChatRepository {
     const timer = PerformanceMonitor.startTimer('chat_send_message');
     
     try {
-      console.log('SupabaseChatRepository: Sending message:', message);
+      console.log('SupabaseChatRepository: Starting sendMessage with:', {
+        messageLength: message.length,
+        contextLength: context.length,
+        message: message.substring(0, 100) + '...'
+      });
       
       // Enhanced input validation
       const messageValidation = SecurityValidator.validateMessageInput(message);
       if (!messageValidation.isValid) {
+        console.error('Message validation failed:', messageValidation.error);
         throw new Error(messageValidation.error);
       }
 
       const contextValidation = SecurityValidator.validateContextArray(context);
       if (!contextValidation.isValid) {
+        console.error('Context validation failed:', contextValidation.error);
         throw new Error(contextValidation.error);
       }
 
       // Sanitize message content
       const sanitizedMessage = SecurityValidator.sanitizeInput(message);
       
-      console.log('SupabaseChatRepository: Calling edge function with:', {
-        messageLength: sanitizedMessage.length,
+      console.log('SupabaseChatRepository: About to call edge function with:', {
+        sanitizedMessageLength: sanitizedMessage.length,
         contextLength: context.length
       });
 
+      // Call the edge function
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
-        body: { message: sanitizedMessage, context }
+        body: { 
+          message: sanitizedMessage, 
+          context: context 
+        }
       });
 
-      console.log('SupabaseChatRepository: Edge function response:', { data, error });
+      console.log('SupabaseChatRepository: Edge function response received:', { 
+        hasData: !!data, 
+        hasError: !!error,
+        data: data,
+        error: error 
+      });
 
       if (error) {
-        console.error('SupabaseChatRepository: Edge function error:', error);
+        console.error('SupabaseChatRepository: Edge function error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          fullError: error
+        });
         PerformanceMonitor.recordError('chat_send_message');
         
         // Provide more specific error messages based on error type
@@ -55,7 +76,7 @@ export class SupabaseChatRepository implements IChatRepository {
           throw new Error('Zu viele Anfragen. Bitte warten Sie einen Moment.');
         }
         
-        throw new Error(`Edge function error: ${error.message}`);
+        throw new Error(`KI-Service Fehler: ${error.message || 'Unbekannter Fehler'}`);
       }
 
       if (!data) {
@@ -64,6 +85,12 @@ export class SupabaseChatRepository implements IChatRepository {
         throw new Error('Keine Antwort vom KI-Service erhalten');
       }
 
+      console.log('SupabaseChatRepository: Processing successful response:', {
+        hasMessage: !!data.message,
+        messageType: typeof data.message,
+        hasOffer: !!data.offer
+      });
+
       if (typeof data.message !== 'string') {
         console.error('SupabaseChatRepository: Invalid response format:', data);
         PerformanceMonitor.recordError('chat_send_message');
@@ -71,29 +98,35 @@ export class SupabaseChatRepository implements IChatRepository {
       }
 
       const duration = timer.stop();
-      console.log(`Chat message processed in ${duration.toFixed(2)}ms`);
+      console.log(`Chat message processed successfully in ${duration.toFixed(2)}ms`);
 
       return {
         message: data.message,
         offer: data.offer
       };
     } catch (error: any) {
-      console.error('SupabaseChatRepository: Error:', error);
+      console.error('SupabaseChatRepository: Detailed error analysis:', {
+        errorType: typeof error,
+        errorName: error.name,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        errorDetails: error
+      });
+      
       PerformanceMonitor.recordError('chat_send_message');
       timer.stop();
       
-      // Re-throw specific errors
-      if (error.message?.includes('Edge function error')) {
-        throw error;
-      }
-      
-      if (error.message?.includes('Netzwerkfehler') || 
+      // Re-throw specific errors without modification
+      if (error.message?.includes('KI-Service Fehler') || 
+          error.message?.includes('Netzwerkfehler') || 
           error.message?.includes('Zeitüberschreitung') || 
-          error.message?.includes('Zu viele Anfragen')) {
+          error.message?.includes('Zu viele Anfragen') ||
+          error.message?.includes('Keine Antwort') ||
+          error.message?.includes('Ungültige Antwort')) {
         throw error;
       }
       
-      // Generic fallback error
+      // Generic fallback error for unexpected errors
       throw new Error('Ein Fehler ist bei der Kommunikation mit dem KI-Service aufgetreten. Bitte versuchen Sie es erneut.');
     }
   }
