@@ -52,9 +52,16 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
+    console.log('=== CHAT-WITH-AI FUNCTION START ===');
+    
     const { message, context } = await req.json();
+    console.log('Request received:', { 
+      messageLength: message?.length, 
+      contextLength: Array.isArray(context) ? context.length : 0 
+    });
 
     if (!message || typeof message !== 'string') {
+      console.error('Invalid message format:', typeof message);
       return new Response(JSON.stringify({ error: 'Invalid message format' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -63,6 +70,7 @@ serve(async (req) => {
 
     // Enhanced input validation
     if (message.length > 4000) {
+      console.error('Message too long:', message.length);
       return new Response(JSON.stringify({ error: 'Message too long. Please keep messages under 4000 characters.' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -75,9 +83,11 @@ serve(async (req) => {
     
     if (authHeader) {
       try {
+        console.log('Checking user authentication...');
         const { data: { user }, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
         if (!error && user) {
           userId = user.id;
+          console.log('User authenticated:', userId);
         }
       } catch (error) {
         console.log('Auth validation failed:', error);
@@ -86,6 +96,7 @@ serve(async (req) => {
 
     // Apply rate limiting for authenticated users
     if (userId && !checkRateLimit(userId)) {
+      console.error('Rate limit exceeded for user:', userId);
       return new Response(JSON.stringify({ 
         error: 'Rate limit exceeded. Please wait before sending another message.' 
       }), {
@@ -100,6 +111,7 @@ serve(async (req) => {
     // Get AI service configuration with error handling
     let configs;
     try {
+      console.log('Fetching AI service configuration...');
       const { data, error } = await supabase
         .from('ai_service_config')
         .select('*')
@@ -114,8 +126,10 @@ serve(async (req) => {
           endpoint_url: 'https://api.openai.com/v1/chat/completions',
           api_key_name: 'OPENAI_API_KEY'
         };
+        console.log('Using fallback OpenAI configuration');
       } else {
         configs = data;
+        console.log('Using database AI configuration:', configs.service_name);
       }
     } catch (error) {
       console.error('Database error:', error);
@@ -125,11 +139,26 @@ serve(async (req) => {
         endpoint_url: 'https://api.openai.com/v1/chat/completions',
         api_key_name: 'OPENAI_API_KEY'
       };
+      console.log('Using emergency fallback configuration');
     }
+
+    // Verify API key is available
+    const apiKey = Deno.env.get(configs.api_key_name);
+    if (!apiKey) {
+      console.error(`API key ${configs.api_key_name} not found in environment`);
+      return new Response(JSON.stringify({ 
+        error: 'AI service configuration incomplete. Please contact support.' 
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    console.log('API key found for:', configs.api_key_name);
 
     // Get knowledge base for context with error handling
     let knowledgeBase = [];
     try {
+      console.log('Fetching knowledge base...');
       const { data, error } = await supabase
         .from('knowledge_base')
         .select('title, content, category')
@@ -137,6 +166,7 @@ serve(async (req) => {
       
       if (!error && data) {
         knowledgeBase = data;
+        console.log('Knowledge base loaded:', knowledgeBase.length, 'entries');
       }
     } catch (error) {
       console.error('Error fetching knowledge base:', error);
@@ -144,6 +174,7 @@ serve(async (req) => {
 
     // Build system prompt with knowledge base
     const systemPrompt = buildSystemPrompt(knowledgeBase);
+    console.log('System prompt built, length:', systemPrompt.length);
     
     // Prepare messages for AI
     const messages = [
@@ -152,6 +183,7 @@ serve(async (req) => {
       { role: 'user', content: message }
     ];
 
+    console.log('Calling AI provider:', configs.service_name);
     let aiResponse;
     
     // Enhanced AI provider selection with fallback
@@ -168,6 +200,7 @@ serve(async (req) => {
           break;
         default:
           // Fallback to OpenAI
+          console.log('Unknown service, falling back to OpenAI');
           aiResponse = await callOpenAI(messages, {
             endpoint_url: 'https://api.openai.com/v1/chat/completions',
             api_key_name: 'OPENAI_API_KEY'
@@ -194,11 +227,17 @@ serve(async (req) => {
     }
 
     if (!aiResponse || !aiResponse.message) {
+      console.error('No response received from AI service');
       throw new Error('No response received from AI service');
     }
 
+    console.log('AI response received, length:', aiResponse.message.length);
+
     // Parse potential offer from response
     const offer = parseOfferFromResponse(aiResponse.message);
+    if (offer) {
+      console.log('Offer detected in response');
+    }
 
     // Log successful interaction for analytics
     if (userId) {
@@ -228,13 +267,14 @@ serve(async (req) => {
       usage: aiResponse.usage
     };
 
-    console.log('Response prepared successfully');
+    console.log('=== CHAT-WITH-AI FUNCTION SUCCESS ===');
     
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error: any) {
+    console.error('=== CHAT-WITH-AI FUNCTION ERROR ===');
     console.error('Error in chat-with-ai function:', error);
     
     // Enhanced error categorization
@@ -253,6 +293,9 @@ serve(async (req) => {
     } else if (error.message?.includes('Invalid message')) {
       statusCode = 400;
       errorMessage = error.message;
+    } else if (error.message?.includes('temporarily unavailable')) {
+      statusCode = 503;
+      errorMessage = 'KI-Service ist vorübergehend nicht verfügbar.';
     }
 
     return new Response(JSON.stringify({ error: errorMessage }), {

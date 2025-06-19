@@ -27,22 +27,45 @@ export class SupabaseChatRepository implements IChatRepository {
       // Sanitize message content
       const sanitizedMessage = SecurityValidator.sanitizeInput(message);
       
+      console.log('SupabaseChatRepository: Calling edge function with:', {
+        messageLength: sanitizedMessage.length,
+        contextLength: context.length
+      });
+
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: { message: sanitizedMessage, context }
       });
 
+      console.log('SupabaseChatRepository: Edge function response:', { data, error });
+
       if (error) {
         console.error('SupabaseChatRepository: Edge function error:', error);
         PerformanceMonitor.recordError('chat_send_message');
+        
+        // Provide more specific error messages based on error type
+        if (error.message?.includes('fetch')) {
+          throw new Error('Netzwerkfehler: Bitte überprüfen Sie Ihre Internetverbindung.');
+        }
+        
+        if (error.message?.includes('timeout')) {
+          throw new Error('Zeitüberschreitung: Der AI-Service antwortet nicht. Bitte versuchen Sie es erneut.');
+        }
+        
+        if (error.message?.includes('rate limit')) {
+          throw new Error('Zu viele Anfragen. Bitte warten Sie einen Moment.');
+        }
+        
         throw new Error(`Edge function error: ${error.message}`);
       }
 
       if (!data) {
+        console.error('SupabaseChatRepository: No data received from edge function');
         PerformanceMonitor.recordError('chat_send_message');
         throw new Error('Keine Antwort vom KI-Service erhalten');
       }
 
       if (typeof data.message !== 'string') {
+        console.error('SupabaseChatRepository: Invalid response format:', data);
         PerformanceMonitor.recordError('chat_send_message');
         throw new Error('Ungültige Antwort vom KI-Service');
       }
@@ -59,10 +82,18 @@ export class SupabaseChatRepository implements IChatRepository {
       PerformanceMonitor.recordError('chat_send_message');
       timer.stop();
       
+      // Re-throw specific errors
       if (error.message?.includes('Edge function error')) {
         throw error;
       }
       
+      if (error.message?.includes('Netzwerkfehler') || 
+          error.message?.includes('Zeitüberschreitung') || 
+          error.message?.includes('Zu viele Anfragen')) {
+        throw error;
+      }
+      
+      // Generic fallback error
       throw new Error('Ein Fehler ist bei der Kommunikation mit dem KI-Service aufgetreten. Bitte versuchen Sie es erneut.');
     }
   }
