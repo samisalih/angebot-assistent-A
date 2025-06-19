@@ -115,9 +115,9 @@ export const OfferFilters = ({ offers, onFilteredOffersChange }: OfferFiltersPro
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Alle Preise</SelectItem>
-                  <SelectItem value="low">< 1.000€</SelectItem>
+                  <SelectItem value="low">&lt; 1.000€</SelectItem>
                   <SelectItem value="medium">1.000€ - 5.000€</SelectItem>
-                  <SelectItem value="high">> 5.000€</SelectItem>
+                  <SelectItem value="high">&gt; 5.000€</SelectItem>
                 </SelectContent>
               </Select>
             </div>
