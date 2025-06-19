@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +27,36 @@ function checkRateLimit(userId: string): boolean {
   
   userLimit.count++;
   return true;
+}
+
+async function fetchKnowledgeBase() {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.log('Supabase credentials not available');
+      return null;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: knowledgeItems, error } = await supabase
+      .from('knowledge_base')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching knowledge base:', error);
+      return null;
+    }
+
+    console.log(`Loaded ${knowledgeItems?.length || 0} knowledge base items`);
+    return knowledgeItems;
+  } catch (error) {
+    console.error('Error in fetchKnowledgeBase:', error);
+    return null;
+  }
 }
 
 async function callOpenAI(messages: any[]) {
@@ -116,6 +147,28 @@ function parseOfferFromResponse(content: string) {
   }
 }
 
+function buildSystemPromptWithKnowledge(knowledgeItems: any[]) {
+  let basePrompt = `Du bist ein hilfsreicher KI-Berater für eine Beratungsfirma. 
+Beantworte Fragen professionell und hilfsreich auf Deutsch. 
+Wenn du ein Angebot erstellen möchtest, formatiere es als [OFFER]{"title":"Titel","description":"Beschreibung","price":100}[/OFFER].`;
+
+  if (knowledgeItems && knowledgeItems.length > 0) {
+    basePrompt += `\n\nFIRMENWISSEN UND RICHTLINIEN:\n`;
+    
+    knowledgeItems.forEach((item, index) => {
+      basePrompt += `\n${index + 1}. ${item.title}`;
+      if (item.category) {
+        basePrompt += ` (Kategorie: ${item.category})`;
+      }
+      basePrompt += `:\n${item.content}\n`;
+    });
+    
+    basePrompt += `\n\nBitte berücksichtige diese Informationen bei der Beratung und Angebotserstellung. Verwende die angegebenen Preise, Richtlinien und Unternehmensdetails.`;
+  }
+
+  return basePrompt;
+}
+
 serve(async (req) => {
   console.log('=== CHAT-WITH-AI FUNCTION START ===');
   console.log('Method:', req.method);
@@ -163,10 +216,11 @@ serve(async (req) => {
       });
     }
 
-    // Build system prompt
-    const systemPrompt = `Du bist ein hilfsreicher KI-Berater für eine Beratungsfirma. 
-Beantworte Fragen professionell und hilfsreich auf Deutsch. 
-Wenn du ein Angebot erstellen möchtest, formatiere es als [OFFER]{"title":"Titel","description":"Beschreibung","price":100}[/OFFER].`;
+    // Fetch knowledge base
+    const knowledgeItems = await fetchKnowledgeBase();
+
+    // Build system prompt with knowledge
+    const systemPrompt = buildSystemPromptWithKnowledge(knowledgeItems || []);
 
     // Prepare messages for OpenAI
     const messages = [
@@ -176,6 +230,7 @@ Wenn du ein Angebot erstellen möchtest, formatiere es als [OFFER]{"title":"Tite
     ];
 
     console.log('Calling OpenAI with', messages.length, 'total messages');
+    console.log('Knowledge base items loaded:', knowledgeItems?.length || 0);
 
     // Call OpenAI
     const aiResponse = await callOpenAI(messages);
