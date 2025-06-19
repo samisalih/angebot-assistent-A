@@ -150,7 +150,38 @@ function parseOfferFromResponse(content: string) {
 function buildSystemPromptWithKnowledge(knowledgeItems: any[]) {
   let basePrompt = `Du bist ein hilfsreicher KI-Berater für eine Beratungsfirma. 
 Beantworte Fragen professionell und hilfsreich auf Deutsch. 
-Wenn du ein Angebot erstellen möchtest, formatiere es als [OFFER]{"title":"Titel","description":"Beschreibung","price":100}[/OFFER].`;
+
+WICHTIG FÜR ANGEBOTE: Wenn du ein Angebot erstellen möchtest, teile es IMMER in mehrere detaillierte Positionen auf. 
+Verwende dieses Format:
+
+[OFFER]{
+  "title": "Titel des Angebots",
+  "description": "Kurze Beschreibung des Gesamtprojekts",
+  "items": [
+    {
+      "name": "Position 1 Name",
+      "description": "Detaillierte Beschreibung der ersten Position",
+      "price": 102.50,
+      "quantity": 8
+    },
+    {
+      "name": "Position 2 Name", 
+      "description": "Detaillierte Beschreibung der zweiten Position",
+      "price": 102.50,
+      "quantity": 12
+    }
+  ],
+  "totalPrice": 2050
+}[/OFFER]
+
+Beispiel für ein Website-Projekt:
+- Position 1: "Konzeption und Planung" (8-12 Stunden)
+- Position 2: "Design und Layout" (15-20 Stunden) 
+- Position 3: "Technische Umsetzung" (20-30 Stunden)
+- Position 4: "Content Management Setup" (5-8 Stunden)
+- Position 5: "Testing und Go-Live" (3-5 Stunden)
+
+Teile NIEMALS alles in eine einzige Position auf. Verwende realistische Stundensätze und Stundenaufwände.`;
 
   if (knowledgeItems && knowledgeItems.length > 0) {
     basePrompt += `\n\nFIRMENWISSEN UND RICHTLINIEN:\n`;
