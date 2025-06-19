@@ -1,28 +1,25 @@
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Calendar, Euro, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getSavedOffers, deleteSavedOffer, SavedOffer } from "@/services/offersService";
+import { deleteSavedOffer, SavedOffer } from "@/services/offersService";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
-export const OffersList = () => {
+interface OffersListProps {
+  offers?: SavedOffer[];
+  isLoading?: boolean;
+}
+
+export const OffersList = ({ offers, isLoading }: OffersListProps) => {
   const { toast } = useToast();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: offers, isLoading, error } = useQuery({
-    queryKey: ['saved-offers'],
-    queryFn: getSavedOffers,
-    enabled: isAuthenticated,
-  });
-
   const handleDeleteOffer = async (offerId: string, event: React.MouseEvent) => {
-    // Prevent navigation when delete button is clicked
     event.stopPropagation();
     
     try {
@@ -60,16 +57,6 @@ export const OffersList = () => {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">Laden...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-destructive">
-          Fehler beim Laden der Angebote. Bitte versuchen Sie es erneut.
-        </p>
       </div>
     );
   }

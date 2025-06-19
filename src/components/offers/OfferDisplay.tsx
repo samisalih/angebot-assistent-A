@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Calendar, Share2, Bookmark } from "lucide-react";
+import { Download, Calendar, Share2, Bookmark, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateOfferPDF } from "@/services/pdfService";
 import { saveOffer } from "@/services/offersService";
@@ -12,6 +12,8 @@ import { AuthDialog } from "@/components/auth/AuthDialog";
 import { useNavigate } from "react-router-dom";
 import { Offer } from "@/types/offer";
 import { OfferValidationService } from "@/domain/OfferValidationService";
+import { OfferBusinessRules } from "@/domain/OfferBusinessRules";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface OfferDisplayProps {
   offer: Offer | null;
@@ -53,12 +55,15 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
       return;
     }
 
-    // Validate offer before saving
+    // Validate offer with business rules
     const validationErrors = OfferValidationService.validateOffer(offer);
-    if (validationErrors.length > 0) {
+    const businessRuleErrors = OfferBusinessRules.validateBusinessRules(offer);
+    const allErrors = [...validationErrors, ...businessRuleErrors];
+
+    if (allErrors.length > 0) {
       toast({
         title: "Ungültiges Angebot",
-        description: validationErrors.join(', '),
+        description: allErrors[0], // Show first error
         variant: "destructive"
       });
       return;
@@ -110,6 +115,8 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
 
   const validUntilDate = typeof offer.validUntil === 'string' ? new Date(offer.validUntil) : offer.validUntil;
   const isExpired = OfferValidationService.isOfferExpired(offer);
+  const businessRuleErrors = OfferBusinessRules.validateBusinessRules(offer);
+  const offerSummary = OfferBusinessRules.generateOfferSummary(offer);
 
   return (
     <>
@@ -117,10 +124,23 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
         <CardHeader className="bg-gradient-to-r from-muted to-accent/20 flex-shrink-0 rounded-t-lg">
           <CardTitle className="text-xl text-foreground">{offer.title}</CardTitle>
           <p className="text-muted-foreground text-sm">{offer.description}</p>
+          <p className="text-xs text-muted-foreground">{offerSummary}</p>
           {isExpired && (
-            <p className="text-destructive text-sm font-medium">
-              ⚠️ Dieses Angebot ist abgelaufen
-            </p>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Dieses Angebot ist abgelaufen
+              </AlertDescription>
+            </Alert>
+          )}
+          {businessRuleErrors.length > 0 && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Hinweise: {businessRuleErrors.slice(0, 2).join(', ')}
+                {businessRuleErrors.length > 2 && ` (+${businessRuleErrors.length - 2} weitere)`}
+              </AlertDescription>
+            </Alert>
           )}
         </CardHeader>
         
@@ -135,7 +155,10 @@ export const OfferDisplay = ({ offer }: OfferDisplayProps) => {
                       <h5 className="font-medium text-foreground">{item.name}</h5>
                       <p className="text-sm text-muted-foreground">{item.description}</p>
                       <span className="text-xs text-muted-foreground opacity-70">
-                        Stundenaufwand: {item.quantity}
+                        {item.quantity}h × {item.price.toLocaleString("de-DE", {
+                          style: "currency",
+                          currency: "EUR"
+                        })}/h
                       </span>
                     </div>
                     <div className="text-right">
