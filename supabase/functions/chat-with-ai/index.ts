@@ -1,18 +1,15 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
-import { callOpenAI, callAnthropic, callGemini } from './aiProviders.ts';
-import { parseOfferFromResponse } from './offerParser.ts';
-import { buildSystemPrompt } from './systemPrompt.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Rate limiting configuration
+// Simple rate limiting
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 20; // 20 requests per minute
+const RATE_LIMIT_MAX_REQUESTS = 10;
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 function checkRateLimit(userId: string): boolean {
@@ -32,286 +29,142 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
+async function callOpenAI(messages: any[]) {
+  const apiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!apiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  console.log('Calling OpenAI with', messages.length, 'messages');
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-3.5-turbo',
+      messages: messages,
+      max_tokens: 1000,
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('OpenAI API error:', response.status, errorText);
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log('OpenAI response received successfully');
+  
+  return data.choices[0]?.message?.content || 'Keine Antwort erhalten';
+}
+
+function parseOfferFromResponse(content: string) {
+  // Simple offer detection - look for structured offer data
+  const offerMatch = content.match(/\[OFFER\](.*?)\[\/OFFER\]/s);
+  if (!offerMatch) return null;
+
+  try {
+    return JSON.parse(offerMatch[1]);
+  } catch (error) {
+    console.log('Failed to parse offer from response');
+    return null;
+  }
+}
+
 serve(async (req) => {
   console.log('=== CHAT-WITH-AI FUNCTION START ===');
-  console.log('Request method:', req.method);
-  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+  console.log('Method:', req.method);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  console.log('Environment check:', {
-    hasSupabaseUrl: !!supabaseUrl,
-    hasServiceKey: !!supabaseServiceKey
-  });
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('Missing Supabase configuration');
-    return new Response(
-      JSON.stringify({ error: 'Server configuration error' }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
   try {
-    console.log('Parsing request body...');
-    const requestText = await req.text();
-    console.log('Raw request body:', requestText);
-    
-    let requestBody;
-    try {
-      requestBody = JSON.parse(requestText);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
+    const requestBody = await req.json();
     const { message, context } = requestBody;
-    console.log('Parsed request data:', { 
+
+    console.log('Request received:', { 
       messageLength: message?.length, 
-      contextLength: Array.isArray(context) ? context.length : 0,
-      messagePreview: message?.substring(0, 100)
+      contextLength: Array.isArray(context) ? context.length : 0 
     });
 
+    // Basic validation
     if (!message || typeof message !== 'string') {
-      console.error('Invalid message format:', typeof message);
-      return new Response(JSON.stringify({ error: 'Message is required and must be a string' }), {
+      return new Response(JSON.stringify({ error: 'Message is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Enhanced input validation
     if (message.length > 4000) {
-      console.error('Message too long:', message.length);
-      return new Response(JSON.stringify({ error: 'Message too long. Please keep messages under 4000 characters.' }), {
+      return new Response(JSON.stringify({ error: 'Message too long' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get user from authorization header
+    // Get user for rate limiting
+    let userId = 'anonymous';
     const authHeader = req.headers.get('Authorization');
-    let userId = null;
-    
     if (authHeader) {
       try {
-        console.log('Checking user authentication...');
-        const { data: { user }, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-        if (!error && user) {
-          userId = user.id;
-          console.log('User authenticated:', userId);
-        } else {
-          console.log('Auth validation failed:', error);
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (supabaseUrl && supabaseServiceKey) {
+          const supabase = createClient(supabaseUrl, supabaseServiceKey);
+          const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+          if (user) userId = user.id;
         }
       } catch (error) {
-        console.log('Auth validation error:', error);
+        console.log('Auth check failed:', error);
       }
     }
 
-    // Apply rate limiting for authenticated users
-    if (userId && !checkRateLimit(userId)) {
-      console.error('Rate limit exceeded for user:', userId);
+    // Rate limiting
+    if (!checkRateLimit(userId)) {
       return new Response(JSON.stringify({ 
-        error: 'Rate limit exceeded. Please wait before sending another message.' 
+        error: 'Zu viele Anfragen. Bitte warten Sie einen Moment.' 
       }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('Processing message:', message.substring(0, 100) + '...');
-    console.log('Context items:', Array.isArray(context) ? context.length : 0);
+    // Build system prompt
+    const systemPrompt = `Du bist ein hilfsreicher KI-Berater für eine Beratungsfirma. 
+Beantworte Fragen professionell und hilfsreich auf Deutsch. 
+Wenn du ein Angebot erstellen möchtest, formatiere es als [OFFER]{"title":"Titel","description":"Beschreibung","price":100}[/OFFER].`;
 
-    // Get AI service configuration with error handling
-    let configs;
-    try {
-      console.log('Fetching AI service configuration...');
-      const { data, error } = await supabase
-        .from('ai_service_config')
-        .select('*')
-        .eq('service_name', 'OpenAI')
-        .single();
-      
-      if (error) {
-        console.error('Error fetching AI config:', error);
-        // Fallback to default OpenAI configuration
-        configs = {
-          service_name: 'OpenAI',
-          endpoint_url: 'https://api.openai.com/v1/chat/completions',
-          api_key_name: 'OPENAI_API_KEY'
-        };
-        console.log('Using fallback OpenAI configuration');
-      } else {
-        configs = data;
-        console.log('Using database AI configuration:', configs.service_name);
-      }
-    } catch (error) {
-      console.error('Database error:', error);
-      // Fallback configuration
-      configs = {
-        service_name: 'OpenAI',
-        endpoint_url: 'https://api.openai.com/v1/chat/completions',
-        api_key_name: 'OPENAI_API_KEY'
-      };
-      console.log('Using emergency fallback configuration');
-    }
-
-    // Verify API key is available
-    const apiKey = Deno.env.get(configs.api_key_name);
-    if (!apiKey) {
-      console.error(`API key ${configs.api_key_name} not found in environment`);
-      return new Response(JSON.stringify({ 
-        error: 'AI service configuration incomplete. Please contact support.' 
-      }), {
-        status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    console.log('API key found for:', configs.api_key_name);
-
-    // Get knowledge base for context with error handling
-    let knowledgeBase = [];
-    try {
-      console.log('Fetching knowledge base...');
-      const { data, error } = await supabase
-        .from('knowledge_base')
-        .select('title, content, category')
-        .limit(10);
-      
-      if (!error && data) {
-        knowledgeBase = data;
-        console.log('Knowledge base loaded:', knowledgeBase.length, 'entries');
-      } else {
-        console.log('No knowledge base data or error:', error);
-      }
-    } catch (error) {
-      console.error('Error fetching knowledge base:', error);
-    }
-
-    // Build system prompt with knowledge base
-    const systemPrompt = buildSystemPrompt(knowledgeBase);
-    console.log('System prompt built, length:', systemPrompt.length);
-    
-    // Prepare messages for AI
+    // Prepare messages for OpenAI
     const messages = [
       { role: 'system', content: systemPrompt },
       ...(Array.isArray(context) ? context : []),
       { role: 'user', content: message }
     ];
 
-    console.log('Calling AI provider:', configs.service_name);
-    console.log('Total messages for AI:', messages.length);
+    console.log('Calling OpenAI with', messages.length, 'total messages');
+
+    // Call OpenAI
+    const aiResponse = await callOpenAI(messages);
     
-    let aiResponse;
-    
-    // Enhanced AI provider selection with fallback
-    try {
-      switch (configs.service_name) {
-        case 'OpenAI':
-          console.log('Calling OpenAI...');
-          aiResponse = await callOpenAI(messages, configs);
-          break;
-        case 'Anthropic':
-          console.log('Calling Anthropic...');
-          aiResponse = await callAnthropic(messages, configs);
-          break;
-        case 'Gemini':
-          console.log('Calling Gemini...');
-          aiResponse = await callGemini(messages, configs);
-          break;
-        default:
-          // Fallback to OpenAI
-          console.log('Unknown service, falling back to OpenAI');
-          aiResponse = await callOpenAI(messages, {
-            endpoint_url: 'https://api.openai.com/v1/chat/completions',
-            api_key_name: 'OPENAI_API_KEY'
-          });
-      }
-    } catch (providerError) {
-      console.error(`Primary AI provider failed:`, providerError);
-      
-      // Fallback to OpenAI if primary provider fails
-      if (configs.service_name !== 'OpenAI') {
-        try {
-          console.log('Attempting fallback to OpenAI...');
-          aiResponse = await callOpenAI(messages, {
-            endpoint_url: 'https://api.openai.com/v1/chat/completions',
-            api_key_name: 'OPENAI_API_KEY'
-          });
-        } catch (fallbackError) {
-          console.error('Fallback AI provider also failed:', fallbackError);
-          throw new Error('AI service temporarily unavailable');
-        }
-      } else {
-        throw providerError;
-      }
-    }
-
-    console.log('AI response received:', {
-      hasResponse: !!aiResponse,
-      hasMessage: !!aiResponse?.message,
-      messageLength: aiResponse?.message?.length
-    });
-
-    if (!aiResponse || !aiResponse.message) {
-      console.error('No response received from AI service');
-      throw new Error('No response received from AI service');
-    }
-
-    console.log('AI response received, length:', aiResponse.message.length);
-
-    // Parse potential offer from response
-    const offer = parseOfferFromResponse(aiResponse.message);
-    if (offer) {
-      console.log('Offer detected in response');
-    }
-
-    // Log successful interaction for analytics
-    if (userId) {
-      try {
-        await supabase
-          .from('admin_audit_log')
-          .insert({
-            admin_user_id: userId,
-            action: 'AI_CHAT_SUCCESS',
-            table_name: 'chat_interactions',
-            new_values: {
-              message_length: message.length,
-              response_length: aiResponse.message.length,
-              has_offer: !!offer,
-              provider: configs.service_name
-            }
-          });
-      } catch (logError) {
-        console.error('Failed to log interaction:', logError);
-        // Don't fail the request if logging fails
-      }
-    }
+    // Parse potential offer
+    const offer = parseOfferFromResponse(aiResponse);
+    const cleanResponse = aiResponse.replace(/\[OFFER\].*?\[\/OFFER\]/s, '').trim();
 
     const response = {
-      message: aiResponse.message,
-      offer: offer,
-      usage: aiResponse.usage
+      message: cleanResponse || aiResponse,
+      offer: offer
     };
 
     console.log('=== CHAT-WITH-AI FUNCTION SUCCESS ===');
-    console.log('Final response:', {
-      hasMessage: !!response.message,
-      messageLength: response.message?.length,
-      hasOffer: !!response.offer
-    });
+    console.log('Response:', { hasMessage: !!response.message, hasOffer: !!response.offer });
     
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -319,32 +172,17 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('=== CHAT-WITH-AI FUNCTION ERROR ===');
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      cause: error.cause
-    });
+    console.error('Error:', error.message);
     
-    // Enhanced error categorization
     let statusCode = 500;
-    let errorMessage = 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
+    let errorMessage = 'Ein unerwarteter Fehler ist aufgetreten.';
     
-    if (error.message?.includes('Rate limit')) {
-      statusCode = 429;
-      errorMessage = 'Zu viele Anfragen. Bitte warten Sie einen Moment.';
-    } else if (error.message?.includes('API key')) {
+    if (error.message?.includes('API key')) {
       statusCode = 503;
-      errorMessage = 'KI-Service ist vorübergehend nicht verfügbar.';
-    } else if (error.message?.includes('timeout')) {
-      statusCode = 504;
-      errorMessage = 'Anfrage dauerte zu lange. Bitte versuchen Sie es erneut.';
-    } else if (error.message?.includes('Invalid message') || error.message?.includes('Invalid JSON')) {
-      statusCode = 400;
-      errorMessage = error.message;
-    } else if (error.message?.includes('temporarily unavailable')) {
-      statusCode = 503;
-      errorMessage = 'KI-Service ist vorübergehend nicht verfügbar.';
+      errorMessage = 'KI-Service ist nicht verfügbar.';
+    } else if (error.message?.includes('OpenAI API')) {
+      statusCode = 502;
+      errorMessage = 'Fehler beim KI-Service.';
     }
 
     return new Response(JSON.stringify({ error: errorMessage }), {

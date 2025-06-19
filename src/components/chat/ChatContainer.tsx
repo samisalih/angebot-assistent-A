@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { chatService } from "@/services/chatService";
+import { simpleChatService } from "@/services/simpleChatService";
 import { useToast } from "@/hooks/use-toast";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
@@ -14,19 +14,6 @@ interface ChatContainerProps {
   onOfferGenerated: (offer: Offer) => void;
   resetKey?: number;
 }
-
-const getErrorMessage = (error: any): string => {
-  if (error.message?.includes('Zu viele Anfragen')) {
-    return error.message;
-  }
-  if (error.message?.includes('nicht erlaubte Inhalte')) {
-    return "Ihre Nachricht enthält nicht erlaubte Inhalte. Bitte formulieren Sie sie neu.";
-  }
-  if (error.message?.includes('zu lang')) {
-    return "Ihre Nachricht ist zu lang. Bitte kürzen Sie sie.";
-  }
-  return "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.";
-};
 
 export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps) => {
   const { toast } = useToast();
@@ -60,9 +47,9 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
     setIsLoading(true);
     
     try {
-      console.log('Sending message to chat service:', messageText);
-      const response = await chatService.sendMessage(messageText, messages);
-      console.log('Received response from chat service:', response);
+      console.log('ChatContainer: Sending message to simplified service');
+      const response = await simpleChatService.sendMessage(messageText, messages);
+      console.log('ChatContainer: Received response:', response);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -75,23 +62,22 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
 
       // Handle offer generation
       if (response.offer) {
-        console.log('Offer detected in response:', response.offer);
+        console.log('ChatContainer: Offer detected:', response.offer);
         if (canCreateOffer) {
           const validatedOffer = OfferValidationService.ensureValidUntilDate(response.offer);
-          console.log('Calling onOfferGenerated with validated offer:', validatedOffer);
+          console.log('ChatContainer: Calling onOfferGenerated with validated offer');
           onOfferGenerated(validatedOffer);
           incrementOfferCount();
         } else {
-          console.log('Cannot create offer - limit reached');
+          console.log('ChatContainer: Cannot create offer - limit reached');
         }
       }
     } catch (error: any) {
-      console.error("Error sending message:", error);
+      console.error("ChatContainer: Error sending message:", error);
       
-      const errorMessage = getErrorMessage(error);
       const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: errorMessage,
+        content: error.message || "Entschuldigung, es gab einen Fehler. Bitte versuchen Sie es erneut.",
         sender: "ai",
         timestamp: new Date()
       };
@@ -99,7 +85,7 @@ export const ChatContainer = ({ onOfferGenerated, resetKey }: ChatContainerProps
 
       toast({
         title: "Fehler",
-        description: errorMessage,
+        description: error.message || "Fehler beim Senden der Nachricht",
         variant: "destructive",
       });
     } finally {
