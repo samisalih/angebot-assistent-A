@@ -72,14 +72,46 @@ async function callOpenAI(messages: any[]) {
 }
 
 function parseOfferFromResponse(content: string) {
-  // Simple offer detection - look for structured offer data
+  // Look for structured offer data in [OFFER]...[/OFFER] format
   const offerMatch = content.match(/\[OFFER\](.*?)\[\/OFFER\]/s);
   if (!offerMatch) return null;
 
   try {
-    return JSON.parse(offerMatch[1]);
+    const offerData = JSON.parse(offerMatch[1]);
+    console.log('Parsed offer data:', offerData);
+    
+    // Transform simple offer format to proper structure
+    if (offerData.price && !offerData.items && !offerData.totalPrice) {
+      return {
+        id: `offer-${Date.now()}`,
+        title: offerData.title || 'Individuelles Angebot',
+        description: offerData.description || 'Professionelle Beratungsleistung',
+        items: [{
+          name: offerData.title || 'Beratungsleistung',
+          description: offerData.description || 'Professionelle Beratung nach Ihren Anforderungen',
+          price: 102.50, // Standard hourly rate
+          quantity: Math.max(1, Math.round(offerData.price / 102.50)) // Calculate hours from total price
+        }],
+        totalPrice: offerData.price,
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+      };
+    }
+    
+    // If it already has the proper structure, return as-is
+    if (offerData.items && Array.isArray(offerData.items)) {
+      return {
+        id: offerData.id || `offer-${Date.now()}`,
+        title: offerData.title,
+        description: offerData.description,
+        items: offerData.items,
+        totalPrice: offerData.totalPrice,
+        validUntil: offerData.validUntil ? new Date(offerData.validUntil) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      };
+    }
+    
+    return offerData;
   } catch (error) {
-    console.log('Failed to parse offer from response');
+    console.log('Failed to parse offer from response:', error);
     return null;
   }
 }
