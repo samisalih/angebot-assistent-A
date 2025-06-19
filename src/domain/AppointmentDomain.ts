@@ -50,6 +50,12 @@ export class AppointmentDomain {
     if (!data.appointmentTime?.trim()) {
       throw new Error('Appointment time is required');
     }
+
+    // Check if appointment is on weekend
+    const dayOfWeek = data.appointmentDate.getDay();
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      throw new Error('Appointments cannot be scheduled on weekends');
+    }
   }
 
   private isValidEmail(email: string): boolean {

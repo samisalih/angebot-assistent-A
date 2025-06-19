@@ -1,97 +1,125 @@
 
-interface Message {
-  role: string;
-  content: string;
-}
-
-interface AIConfig {
-  endpoint_url: string;
-  system_prompt?: string;
-}
-
-export async function callOpenAI(apiKey: string, config: AIConfig, messages: Message[]): Promise<string> {
+export async function callOpenAI(messages: any[], config: any) {
+  console.log('=== CALLING OPENAI ===');
+  console.log('Endpoint:', config.endpoint_url);
+  
+  const apiKey = Deno.env.get(config.api_key_name);
+  if (!apiKey) {
+    throw new Error(`API key ${config.api_key_name} not found in environment`);
+  }
+  
+  console.log('API key found:', !!apiKey);
   console.log('Calling OpenAI API');
-  const response = await fetch(config.endpoint_url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: messages,
-      max_tokens: 1000,
-      temperature: 0.7,
-    }),
-  });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI API error:', response.status, errorText);
-    throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
-}
-
-export async function callAnthropic(apiKey: string, config: AIConfig, messages: Message[], systemPrompt: string): Promise<string> {
-  console.log('Calling Anthropic API');
-  // Anthropic format is different - system message is separate
-  const anthropicMessages = messages.slice(1); // Remove system message
-
-  const response = await fetch(config.endpoint_url, {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-3-sonnet-20240229',
-      max_tokens: 1000,
-      temperature: 0.7,
-      system: systemPrompt,
-      messages: anthropicMessages,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Anthropic API error:', response.status, errorText);
-    throw new Error(`Anthropic API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.content[0].text;
-}
-
-export async function callGemini(apiKey: string, config: AIConfig, message: string): Promise<string> {
-  console.log('Calling Gemini API');
-  const response = await fetch(`${config.endpoint_url}?key=${apiKey}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{
-          text: message
-        }]
-      }],
-      generationConfig: {
+  try {
+    const response = await fetch(config.endpoint_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: messages,
+        max_tokens: 1000,
         temperature: 0.7,
-        maxOutputTokens: 1000,
-      }
-    }),
-  });
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Gemini API error:', response.status, errorText);
-    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response received successfully');
+    
+    return {
+      message: data.choices[0]?.message?.content || 'No response from AI',
+      usage: data.usage,
+    };
+  } catch (error) {
+    console.error('Error calling OpenAI:', error);
+    throw error;
+  }
+}
+
+export async function callAnthropic(messages: any[], config: any) {
+  console.log('=== CALLING ANTHROPIC ===');
+  
+  const apiKey = Deno.env.get(config.api_key_name);
+  if (!apiKey) {
+    throw new Error(`API key ${config.api_key_name} not found in environment`);
   }
 
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
+  try {
+    const response = await fetch(config.endpoint_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-sonnet-20240229',
+        messages: messages,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Anthropic API error:', response.status, errorText);
+      throw new Error(`Anthropic API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return {
+      message: data.content[0]?.text || 'No response from AI',
+      usage: data.usage,
+    };
+  } catch (error) {
+    console.error('Error calling Anthropic:', error);
+    throw error;
+  }
+}
+
+export async function callGemini(messages: any[], config: any) {
+  console.log('=== CALLING GEMINI ===');
+  
+  const apiKey = Deno.env.get(config.api_key_name);
+  if (!apiKey) {
+    throw new Error(`API key ${config.api_key_name} not found in environment`);
+  }
+
+  try {
+    const response = await fetch(`${config.endpoint_url}?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: messages.map(msg => ({
+          parts: [{ text: msg.content }],
+          role: msg.role === 'assistant' ? 'model' : 'user'
+        }))
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini API error:', response.status, errorText);
+      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return {
+      message: data.candidates[0]?.content?.parts[0]?.text || 'No response from AI',
+      usage: data.usageMetadata,
+    };
+  } catch (error) {
+    console.error('Error calling Gemini:', error);
+    throw error;
+  }
 }

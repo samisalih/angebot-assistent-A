@@ -197,6 +197,30 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_configuration_docs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: number
+          setting_name: string
+          setting_value: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          setting_name: string
+          setting_value: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          setting_name?: string
+          setting_value?: string
+        }
+        Relationships: []
+      }
       chat_conversations: {
         Row: {
           created_at: string
