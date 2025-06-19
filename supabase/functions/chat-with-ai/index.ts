@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,35 +31,43 @@ function checkRateLimit(userId: string): boolean {
 async function callOpenAI(messages: any[]) {
   const apiKey = Deno.env.get('OPENAI_API_KEY');
   if (!apiKey) {
+    console.error('OpenAI API key not configured');
     throw new Error('OpenAI API key not configured');
   }
 
   console.log('Calling OpenAI with', messages.length, 'messages');
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
-      messages: messages,
-      max_tokens: 1000,
-      temperature: 0.7,
-    }),
-  });
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: messages,
+        max_tokens: 1000,
+        temperature: 0.7,
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI API error:', response.status, errorText);
-    throw new Error(`OpenAI API error: ${response.status}`);
+    console.log('OpenAI response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response received successfully');
+    
+    return data.choices[0]?.message?.content || 'Keine Antwort erhalten';
+  } catch (error) {
+    console.error('Error in callOpenAI:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  console.log('OpenAI response received successfully');
-  
-  return data.choices[0]?.message?.content || 'Keine Antwort erhalten';
 }
 
 function parseOfferFromResponse(content: string) {
@@ -96,6 +103,7 @@ serve(async (req) => {
 
     // Basic validation
     if (!message || typeof message !== 'string') {
+      console.error('Invalid message:', message);
       return new Response(JSON.stringify({ error: 'Message is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -103,32 +111,17 @@ serve(async (req) => {
     }
 
     if (message.length > 4000) {
+      console.error('Message too long:', message.length);
       return new Response(JSON.stringify({ error: 'Message too long' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get user for rate limiting
-    let userId = 'anonymous';
-    const authHeader = req.headers.get('Authorization');
-    if (authHeader) {
-      try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL');
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-        
-        if (supabaseUrl && supabaseServiceKey) {
-          const supabase = createClient(supabaseUrl, supabaseServiceKey);
-          const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-          if (user) userId = user.id;
-        }
-      } catch (error) {
-        console.log('Auth check failed:', error);
-      }
-    }
-
-    // Rate limiting
+    // Simple rate limiting with anonymous user
+    const userId = 'anonymous';
     if (!checkRateLimit(userId)) {
+      console.log('Rate limit exceeded for user:', userId);
       return new Response(JSON.stringify({ 
         error: 'Zu viele Anfragen. Bitte warten Sie einen Moment.' 
       }), {
@@ -172,7 +165,8 @@ Wenn du ein Angebot erstellen möchtest, formatiere es als [OFFER]{"title":"Tite
 
   } catch (error: any) {
     console.error('=== CHAT-WITH-AI FUNCTION ERROR ===');
-    console.error('Error:', error.message);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     
     let statusCode = 500;
     let errorMessage = 'Ein unerwarteter Fehler ist aufgetreten.';
