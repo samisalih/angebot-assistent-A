@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -98,7 +97,7 @@ async function callOpenAI(messages: any[]) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Changed to a model with larger context window
+        model: 'gpt-4o-mini',
         messages: messages,
         max_tokens: 1000,
         temperature: 0.7,
@@ -126,7 +125,7 @@ async function callOpenAI(messages: any[]) {
 function parseOfferFromResponse(content: string) {
   // Look for structured offer data in [OFFER]...[/OFFER] format
   const offerMatch = content.match(/\[OFFER\](.*?)\[\/OFFER\]/s);
-  if (!offerMatch) return null;
+  if (!offerMatch) return { offer: null, cleanMessage: content };
 
   try {
     const offerData = JSON.parse(offerMatch[1]);
@@ -156,7 +155,7 @@ function parseOfferFromResponse(content: string) {
       // Update total price to match calculated total
       offerData.totalPrice = Math.round(calculatedTotal * 100) / 100;
       
-      return {
+      const offer = {
         id: offerData.id || `offer-${Date.now()}`,
         title: offerData.title || 'Individuelles Angebot',
         description: offerData.description || 'Professionelle Beratungsleistung',
@@ -164,12 +163,17 @@ function parseOfferFromResponse(content: string) {
         totalPrice: offerData.totalPrice,
         validUntil: offerData.validUntil ? new Date(offerData.validUntil) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
       };
+
+      // Clean the message by removing the offer JSON completely
+      const cleanMessage = content.replace(/\[OFFER\].*?\[\/OFFER\]/s, '').trim();
+      
+      return { offer, cleanMessage };
     }
     
-    return null;
+    return { offer: null, cleanMessage: content };
   } catch (error) {
     console.log('Failed to parse offer from response:', error);
-    return null;
+    return { offer: null, cleanMessage: content };
   }
 }
 
@@ -314,12 +318,11 @@ serve(async (req) => {
     // Call OpenAI
     const aiResponse = await callOpenAI(messages);
     
-    // Parse potential offer
-    const offer = parseOfferFromResponse(aiResponse);
-    const cleanResponse = aiResponse.replace(/\[OFFER\].*?\[\/OFFER\]/s, '').trim();
+    // Parse potential offer and clean message
+    const { offer, cleanMessage } = parseOfferFromResponse(aiResponse);
 
     const response = {
-      message: cleanResponse || aiResponse,
+      message: cleanMessage || 'Entschuldigung, ich konnte keine Antwort generieren.',
       offer: offer
     };
 
