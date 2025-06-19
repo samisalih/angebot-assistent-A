@@ -29,6 +29,13 @@ function checkRateLimit(userId: string): boolean {
   return true;
 }
 
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength) + '...';
+}
+
 async function fetchKnowledgeBase() {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -52,14 +59,21 @@ async function fetchKnowledgeBase() {
     }
 
     console.log(`Loaded ${knowledgeItems?.length || 0} knowledge base items`);
-    if (knowledgeItems && knowledgeItems.length > 0) {
-      console.log('Knowledge base content preview:', knowledgeItems.map(item => ({ 
+    
+    // Truncate knowledge items to prevent token limit issues
+    const truncatedItems = knowledgeItems?.map(item => ({
+      ...item,
+      content: truncateText(item.content || '', 1000) // Limit each item to 1000 chars
+    }));
+
+    if (truncatedItems && truncatedItems.length > 0) {
+      console.log('Knowledge base content preview:', truncatedItems.map(item => ({ 
         title: item.title, 
         category: item.category,
         contentLength: item.content?.length || 0 
       })));
     }
-    return knowledgeItems;
+    return truncatedItems;
   } catch (error) {
     console.error('Error in fetchKnowledgeBase:', error);
     return null;
@@ -84,7 +98,7 @@ async function callOpenAI(messages: any[]) {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini', // Changed to a model with larger context window
         messages: messages,
         max_tokens: 1000,
         temperature: 0.7,
@@ -203,13 +217,12 @@ REALISTISCHE STUNDENAUFWÄNDE:
 Teile NIEMALS alles in eine einzige Position auf. Verwende realistische Stundensätze und Stundenaufwände.`;
 
   if (knowledgeItems && knowledgeItems.length > 0) {
-    basePrompt += `\n\n=== FIRMENWISSEN UND RICHTLINIEN ===\n`;
-    basePrompt += `VERWENDE DIESE INFORMATIONEN UNBEDINGT für realistische Angebote und Preise:\n\n`;
+    basePrompt += `\n\n=== FIRMENWISSEN ===\n`;
     
     knowledgeItems.forEach((item, index) => {
       basePrompt += `${index + 1}. ${item.title}`;
       if (item.category) {
-        basePrompt += ` (Kategorie: ${item.category})`;
+        basePrompt += ` (${item.category})`;
       }
       basePrompt += `:\n${item.content}\n\n`;
     });
@@ -221,6 +234,13 @@ Die Stundenaufwände müssen realistisch sein und den Firmenvorgaben entsprechen
 NIEMALS mehr als 80 Stunden pro Position verwenden!`;
   } else {
     console.log('No knowledge base items available for system prompt');
+  }
+
+  // Ensure the final prompt is not too long
+  const maxPromptLength = 8000; // Conservative limit to stay within token limits
+  if (basePrompt.length > maxPromptLength) {
+    basePrompt = truncateText(basePrompt, maxPromptLength);
+    console.log('System prompt was truncated due to length');
   }
 
   console.log('Final system prompt length:', basePrompt.length);
@@ -280,10 +300,11 @@ serve(async (req) => {
     // Build system prompt with knowledge
     const systemPrompt = buildSystemPromptWithKnowledge(knowledgeItems || []);
 
-    // Prepare messages for OpenAI
+    // Prepare messages for OpenAI - limit context to prevent token overflow
+    const limitedContext = Array.isArray(context) ? context.slice(-5) : []; // Only last 5 messages
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...(Array.isArray(context) ? context : []),
+      ...limitedContext,
       { role: 'user', content: message }
     ];
 
