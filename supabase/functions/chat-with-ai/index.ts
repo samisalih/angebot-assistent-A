@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -35,21 +36,38 @@ async function callOpenAI(messages: any[]) {
     throw new Error('OpenAI API key not configured');
   }
 
+  // Validate API key format
+  if (typeof apiKey !== 'string' || apiKey.trim().length === 0) {
+    console.error('Invalid API key format');
+    throw new Error('Invalid API key format');
+  }
+
+  // Clean the API key to remove any potential invalid characters
+  const cleanApiKey = apiKey.trim();
+  
   console.log('Calling OpenAI with', messages.length, 'messages');
+  console.log('API key length:', cleanApiKey.length);
+  console.log('API key starts with sk-:', cleanApiKey.startsWith('sk-'));
 
   try {
+    // Create headers object separately for better debugging
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/json');
+    headers.set('Authorization', `Bearer ${cleanApiKey}`);
+
+    const requestBody = {
+      model: 'gpt-3.5-turbo',
+      messages: messages,
+      max_tokens: 1000,
+      temperature: 0.7,
+    };
+
+    console.log('Making request to OpenAI...');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: messages,
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
+      headers: headers,
+      body: JSON.stringify(requestBody),
     });
 
     console.log('OpenAI response status:', response.status);
@@ -57,7 +75,7 @@ async function callOpenAI(messages: any[]) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -66,6 +84,8 @@ async function callOpenAI(messages: any[]) {
     return data.choices[0]?.message?.content || 'Keine Antwort erhalten';
   } catch (error) {
     console.error('Error in callOpenAI:', error);
+    console.error('Error type:', typeof error);
+    console.error('Error name:', error.name);
     throw error;
   }
 }
@@ -185,3 +205,4 @@ Wenn du ein Angebot erstellen möchtest, formatiere es als [OFFER]{"title":"Tite
     });
   }
 });
+
