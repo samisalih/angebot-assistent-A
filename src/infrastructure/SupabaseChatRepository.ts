@@ -3,28 +3,52 @@ import { IChatRepository } from '@/domain/ChatDomain';
 import { Message } from "@/types/message";
 import { Offer } from "@/types/offer";
 import { supabase } from "@/integrations/supabase/client";
+import { SecurityValidator } from './SecurityValidator';
+import { PerformanceMonitor } from './PerformanceMonitor';
 
 export class SupabaseChatRepository implements IChatRepository {
   async sendMessage(message: string, context: any[]): Promise<{ message: string; offer?: Offer }> {
-    console.log('SupabaseChatRepository: Sending message:', message);
+    const timer = PerformanceMonitor.startTimer('chat_send_message');
     
     try {
+      console.log('SupabaseChatRepository: Sending message:', message);
+      
+      // Enhanced input validation
+      const messageValidation = SecurityValidator.validateMessageInput(message);
+      if (!messageValidation.isValid) {
+        throw new Error(messageValidation.error);
+      }
+
+      const contextValidation = SecurityValidator.validateContextArray(context);
+      if (!contextValidation.isValid) {
+        throw new Error(contextValidation.error);
+      }
+
+      // Sanitize message content
+      const sanitizedMessage = SecurityValidator.sanitizeInput(message);
+      
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
-        body: { message, context }
+        body: { message: sanitizedMessage, context }
       });
 
       if (error) {
         console.error('SupabaseChatRepository: Edge function error:', error);
+        PerformanceMonitor.recordError('chat_send_message');
         throw new Error(`Edge function error: ${error.message}`);
       }
 
       if (!data) {
+        PerformanceMonitor.recordError('chat_send_message');
         throw new Error('Keine Antwort vom KI-Service erhalten');
       }
 
       if (typeof data.message !== 'string') {
+        PerformanceMonitor.recordError('chat_send_message');
         throw new Error('Ungültige Antwort vom KI-Service');
       }
+
+      const duration = timer.stop();
+      console.log(`Chat message processed in ${duration.toFixed(2)}ms`);
 
       return {
         message: data.message,
@@ -32,6 +56,8 @@ export class SupabaseChatRepository implements IChatRepository {
       };
     } catch (error: any) {
       console.error('SupabaseChatRepository: Error:', error);
+      PerformanceMonitor.recordError('chat_send_message');
+      timer.stop();
       
       if (error.message?.includes('Edge function error')) {
         throw error;
@@ -42,39 +68,59 @@ export class SupabaseChatRepository implements IChatRepository {
   }
 
   async generateTitle(messages: Message[]): Promise<string> {
-    console.log('SupabaseChatRepository: Generating conversation title');
+    const timer = PerformanceMonitor.startTimer('chat_generate_title');
     
-    const userMessages = messages
-      .filter(msg => msg.sender === "user")
-      .slice(0, 3)
-      .map(msg => msg.content)
-      .join(". ");
-
-    if (!userMessages) {
-      return 'Chat mit KI-Berater';
-    }
-
     try {
+      console.log('SupabaseChatRepository: Generating conversation title');
+      
+      const userMessages = messages
+        .filter(msg => msg.sender === "user")
+        .slice(0, 3)
+        .map(msg => msg.content)
+        .join(". ");
+
+      if (!userMessages) {
+        timer.stop();
+        return 'Chat mit KI-Berater';
+      }
+
+      // Validate and sanitize the input
+      const messageValidation = SecurityValidator.validateMessageInput(userMessages);
+      if (!messageValidation.isValid) {
+        timer.stop();
+        return 'Chat mit KI-Berater';
+      }
+
+      const sanitizedMessages = SecurityValidator.sanitizeInput(userMessages);
+      const titlePrompt = `Erstelle einen kurzen, prägnanten Titel (max. 50 Zeichen) für diese Unterhaltung basierend auf dem Inhalt: "${sanitizedMessages}". Antworte nur mit dem Titel, ohne Anführungszeichen.`;
+
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: { 
-          message: `Erstelle einen kurzen, prägnanten Titel (max. 50 Zeichen) für diese Unterhaltung basierend auf dem Inhalt: "${userMessages}". Antworte nur mit dem Titel, ohne Anführungszeichen.`,
+          message: titlePrompt,
           context: []
         }
       });
 
       if (error) {
         console.error('SupabaseChatRepository: Error generating title:', error);
+        PerformanceMonitor.recordError('chat_generate_title');
         throw new Error(`Title generation error: ${error.message}`);
       }
 
       if (!data?.message) {
+        PerformanceMonitor.recordError('chat_generate_title');
         throw new Error('Keine Antwort für Titel-Generierung erhalten');
       }
 
       const title = data.message.trim().slice(0, 50);
+      const duration = timer.stop();
+      console.log(`Title generated in ${duration.toFixed(2)}ms`);
+      
       return title || 'Chat mit KI-Berater';
     } catch (error: any) {
       console.error('SupabaseChatRepository: Error generating conversation title:', error);
+      PerformanceMonitor.recordError('chat_generate_title');
+      timer.stop();
       
       const firstUserMessage = messages.find(msg => msg.sender === "user")?.content;
       if (firstUserMessage) {
