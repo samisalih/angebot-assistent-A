@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { OffersList } from "@/components/offers/OffersList";
@@ -20,10 +19,14 @@ const Offers = () => {
     queryKey: ['saved-offers'],
     queryFn: getSavedOffers,
     enabled: isAuthenticated,
-    onSuccess: (data) => {
-      setFilteredOffers(data);
-    }
   });
+
+  // Update filtered offers when offers data changes
+  useEffect(() => {
+    if (offers) {
+      setFilteredOffers(offers);
+    }
+  }, [offers]);
 
   const handleFilteredOffersChange = (filtered: SavedOffer[]) => {
     setFilteredOffers(filtered);
