@@ -70,7 +70,7 @@ export const Header = ({ onMenuClick, onResetChat }: HeaderProps) => {
           </Button>
           <div className="flex items-center space-x-3">
             <img 
-              src="/digitalwert-Logo-blau.svg" 
+              src="/digitalwert-Logo-weiss.svg" 
               alt="Digitalwert Logo" 
               className="h-8 w-auto"
             />
