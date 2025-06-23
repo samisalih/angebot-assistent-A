@@ -74,7 +74,7 @@ export const Header = ({ onMenuClick, onResetChat }: HeaderProps) => {
               alt="Digitalwert Logo" 
               className="h-5 w-auto"
             />
-            <h1 className="text-xl font-bold text-foreground hidden sm:block">
+            <h1 className="text-xl text-foreground hidden sm:block">
               Angebotsgenerator
             </h1>
           </div>
