@@ -72,10 +72,10 @@ export const Header = ({ onMenuClick, onResetChat }: HeaderProps) => {
             <img 
               src="/digitalwert-Logo-weiss.svg" 
               alt="Digitalwert Logo" 
-              className="h-8 w-auto"
+              className="h-5 w-auto"
             />
             <h1 className="text-xl font-bold text-foreground hidden sm:block">
-              KI-Berater
+              Angebotsgenerator
             </h1>
           </div>
         </div>
